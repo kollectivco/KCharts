@@ -488,6 +488,70 @@
 	font-size: 11px;
 }
 
+.amc-admin-alert__actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+.amc-alert-action {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--amc-theme-text-secondary);
+	text-decoration: none;
+	padding: 3px 8px;
+	border: 1px solid var(--amc-theme-border);
+	border-radius: 8px;
+	background: var(--amc-theme-button-bg);
+	transition: background 0.15s, color 0.15s;
+}
+
+.amc-alert-action:hover {
+	background: var(--amc-theme-button-bg-hover);
+	color: var(--amc-theme-text-heading);
+	text-decoration: none;
+}
+
+.amc-alert-action--dismiss {
+	opacity: 0.6;
+}
+
+.amc-alert-action--dismiss:hover {
+	opacity: 1;
+}
+
+/* Action button feedback states */
+.amc-action-btn[data-amc-loading] {
+	opacity: 0.55;
+	pointer-events: none;
+	cursor: wait;
+}
+
+.amc-action-btn[data-amc-done] {
+	opacity: 0.75;
+}
+
+/* Matching state badges */
+.amc-admin-badge--auto-matched {
+	background: var(--amc-theme-surface-elevated);
+	border-color: var(--amc-theme-border-strong);
+	color: var(--amc-theme-text-heading);
+}
+
+.amc-admin-badge--needs-review {
+	background: transparent;
+	border: 1px dashed var(--amc-theme-border-strong);
+	color: var(--amc-theme-text-heading);
+}
+
+.amc-admin-badge--overridden {
+	background: var(--amc-theme-button-bg);
+	border-color: var(--amc-theme-border-strong);
+	color: var(--amc-theme-text-secondary);
+}
+
 .amc-admin-stat-stack,
 .amc-admin-definition-list {
 	display: grid;

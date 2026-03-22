@@ -3,7 +3,7 @@
  * Plugin Name: Kontentainment Charts
  * Plugin URI: https://github.com/kollectivco/kontent
  * Description: Public-facing charts platform and control center for Kontentainment Charts.
- * Version: 4.3.6
+ * Version: 4.3.7
  * Author: Codex
  * License: GPL2+
  * Text Domain: kontentainment-charts
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AMC_PLUGIN_VERSION', '4.3.6' );
+define( 'AMC_PLUGIN_VERSION', '4.3.7' );
 define( 'AMC_PLUGIN_SLUG', 'kontentainment-charts' );
 define( 'AMC_PLUGIN_FILE', __FILE__ );
 define( 'AMC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

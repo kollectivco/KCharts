@@ -712,7 +712,7 @@ class AMC_Admin {
 			$tone = 'info';
 
 			if ( 'success' === $type ) {
-				$tone = 'info';
+				$tone = 'info'; // success and info share the same CSS class
 			} elseif ( 'error' === $type ) {
 				$tone = 'danger';
 			} elseif ( 'warning' === $type ) {
@@ -729,9 +729,17 @@ class AMC_Admin {
 				if ( 'error' === $tone ) {
 					$tone = 'danger';
 				}
+				$dismiss_url  = self::action_url( 'notification', $notification['id'], 'dismiss' );
+				$read_url     = 'Unread' === $notification['status'] ? self::action_url( 'notification', $notification['id'], 'read' ) : '';
 				echo '<section class="amc-admin-alert amc-admin-alert--' . esc_attr( $tone ) . '">';
 				echo '<div class="amc-admin-alert__head"><strong>' . esc_html( $notification['severity'] ) . '</strong><span>' . esc_html( $notification['status'] ) . '</span></div>';
 				echo '<p>' . esc_html( $notification['message'] ) . '</p>';
+				echo '<div class="amc-admin-alert__actions">';
+				if ( $read_url ) {
+					echo '<a href="' . esc_url( $read_url ) . '" class="amc-alert-action">Mark read</a>';
+				}
+				echo '<a href="' . esc_url( $dismiss_url ) . '" class="amc-alert-action amc-alert-action--dismiss">Dismiss</a>';
+				echo '</div>';
 				echo '</section>';
 			}
 			echo '</div>';
@@ -1526,53 +1534,117 @@ class AMC_Admin {
 	}
 
 	private static function render_cleaning() {
-		$candidates = AMC_Admin_Data::matching_candidates();
+		$candidates  = AMC_Admin_Data::matching_candidates();
 		$override_id = isset( $_GET['queue_id'] ) ? absint( wp_unslash( $_GET['queue_id'] ) ) : 0;
 		$override    = $override_id ? AMC_DB::get_row( 'matching_queue', $override_id ) : null;
 		self::render_workflow_strip( 'cleaning' );
-		echo '<section class="amc-admin-grid amc-admin-grid--split amc-admin-grid--bento">';
-		self::render_panel_start( 'Matching and Cleaning queue', 'This queue only keeps uncertain rows that were not resolved safely by automatic matching or automatic creation.' );
-		if ( empty( $candidates ) ) {
-			echo '<p>No review-needed matches are waiting right now. When ambiguous rows arrive from uploads, they will appear here for manual review before generation.</p>';
+
+		// Build summary counts.
+		$count_auto_matched = 0;
+		$count_auto_created = 0;
+		$count_needs_review = 0;
+		$count_rejected     = 0;
+		foreach ( $candidates as $c ) {
+			if ( in_array( $c['raw_status'], array( 'approved', 'matched', 'matched_existing', 'auto_matched' ), true ) || 'matched_existing' === $c['resolution'] ) {
+				++$count_auto_matched;
+			} elseif ( in_array( $c['raw_status'], array( 'auto_created' ), true ) || 'auto_created' === $c['resolution'] ) {
+				++$count_auto_created;
+			} elseif ( in_array( $c['raw_status'], array( 'rejected' ), true ) ) {
+				++$count_rejected;
+			} else {
+				++$count_needs_review;
+			}
 		}
+
+		// Only show rows that genuinely need human review.
+		$review_rows = array_filter(
+			$candidates,
+			function ( $row ) {
+				$resolved_statuses   = array( 'approved', 'matched', 'matched_existing', 'auto_matched', 'auto_created', 'rejected', 'overridden' );
+				$resolved_resolution = array( 'matched_existing', 'auto_created', 'manual_override' );
+				if ( in_array( $row['raw_status'], $resolved_statuses, true ) ) {
+					return false;
+				}
+				if ( ! empty( $row['resolution'] ) && in_array( $row['resolution'], $resolved_resolution, true ) ) {
+					return false;
+				}
+				return true;
+			}
+		);
+
+		echo '<section class="amc-admin-grid amc-admin-grid--split amc-admin-grid--bento">';
+		self::render_panel_start( 'Matching review', 'Only rows that genuinely need a decision appear here. Auto-matched and auto-created rows are resolved automatically and do not need review.' );
+
+		// Summary counts strip.
+		echo '<div class="amc-admin-stat-stack">';
+		printf( '<div><strong>%s</strong><span>Auto-matched</span></div>', esc_html( (string) $count_auto_matched ) );
+		printf( '<div><strong>%s</strong><span>Auto-created</span></div>', esc_html( (string) $count_auto_created ) );
+		printf( '<div><strong>%s</strong><span>Needs review</span></div>', esc_html( (string) $count_needs_review ) );
+		printf( '<div><strong>%s</strong><span>Rejected</span></div>', esc_html( (string) $count_rejected ) );
+		echo '</div>';
+
+		if ( empty( $review_rows ) ) {
+			echo '<p>No rows need review right now. Auto-matched and auto-created rows are already resolved. You can proceed to generation.</p>';
+		}
+
 		self::render_table(
-			array( 'Candidate', 'State', 'Type', 'Confidence', 'Why it needs attention', 'What the system did', 'Recommended next action', 'Actions' ),
+			array( 'Name', 'Type', 'State', 'What happened', 'Next action' ),
 			array_map(
 				function ( $row ) {
-					$actions = array(
-						'<a href="' . esc_url( self::action_url( 'matching', $row['id'], 'approve' ) ) . '">Use suggested match</a>',
-						'<a href="' . esc_url( self::action_url( 'matching', $row['id'], 'reject' ) ) . '">Reject this row</a>',
-						'<a href="' . esc_url( add_query_arg( 'queue_id', $row['id'], self::current_url() ) ) . '">Choose different target</a>',
-					);
-					$candidate_display = $row['candidate'];
+					// Determine single clean state.
+					if ( in_array( $row['raw_status'], array( 'approved', 'matched', 'matched_existing', 'auto_matched' ), true ) || 'matched_existing' === $row['resolution'] ) {
+						$state       = 'Auto-matched';
+						$what        = 'System found a confident match. Linked to existing record.';
+						$next_action = 'No action needed — proceed to generation.';
+						$actions     = array();
+					} elseif ( 'auto_created' === $row['raw_status'] || 'auto_created' === $row['resolution'] ) {
+						$state       = 'Auto-created';
+						$what        = 'Row was new and unambiguous. Record was created automatically.';
+						$next_action = 'No action needed — proceed to generation.';
+						$actions     = array();
+					} elseif ( 'rejected' === $row['raw_status'] ) {
+						$state       = 'Rejected';
+						$what        = 'Row was marked invalid and removed from the workflow.';
+						$next_action = 'No further action needed.';
+						$actions     = array();
+					} elseif ( 'overridden' === $row['raw_status'] || 'manual_override' === $row['resolution'] ) {
+						$state       = 'Overridden';
+						$what        = 'Manual override saved. Operator selected a specific target.';
+						$next_action = 'Override recorded — proceed to generation.';
+						$actions     = array();
+					} else {
+						$state   = 'Needs review';
+						$what    = ! empty( $row['basis'] ) ? $row['basis'] : 'Low confidence match. System could not decide safely.';
+						$has_candidate = (int) ( ! empty( $row['queue']['candidate_entity_id'] ) ? $row['queue']['candidate_entity_id'] : 0 ) > 0;
+						$next_action = $has_candidate ? 'Review the suggested match and approve or reject it.' : 'No match found. Use override to pick a target, or reject this row.';
+						$actions = array();
+						if ( $has_candidate ) {
+							$actions[] = '<a class="button button-primary amc-action-btn" href="' . esc_url( self::action_url( 'matching', $row['id'], 'approve' ) ) . '">Approve match</a>';
+						}
+						$actions[] = '<a class="button button-secondary amc-action-btn" href="' . esc_url( self::action_url( 'matching', $row['id'], 'reject' ) ) . '">Reject</a>';
+						$actions[] = '<a class="button button-secondary amc-action-btn" href="' . esc_url( add_query_arg( 'queue_id', $row['id'], self::current_url() ) ) . '">Override target</a>';
+					}
+
+					$candidate_display = esc_html( $row['candidate'] );
 					if ( ! empty( $row['candidate_link'] ) ) {
 						$candidate_display = '<a href="' . esc_url( $row['candidate_link'] ) . '" target="_blank">' . esc_html( $row['candidate'] ) . '</a>';
 					}
+
 					return array(
 						array( 'value' => $candidate_display, 'html' => true ),
-						array( 'value' => self::badge_html( $row['row_type'] ), 'html' => true ),
 						$row['type'],
-						$row['confidence'],
-						$row['basis'],
-						$row['create_mode'],
-						$row['recommended_action'] . ' / ' . $row['action_hint'],
-						array( 'value' => implode( ' / ', $actions ), 'html' => true ),
+						array( 'value' => self::badge_html( $state ), 'html' => true ),
+						$what,
+						! empty( $actions ) ? array( 'value' => implode( ' ', $actions ), 'html' => true ) : $next_action,
 					);
 				},
-				$candidates
+				array_values( $review_rows )
 			)
 		);
-		echo '<div class="amc-admin-button-row"><a class="button button-secondary" href="' . esc_url( self::action_url( 'export', 0, 'matching_queue' ) ) . '">Export matching review queue</a></div>';
+		echo '<div class="amc-admin-button-row"><a class="button button-secondary" href="' . esc_url( self::action_url( 'export', 0, 'matching_queue' ) ) . '">Export full queue CSV</a></div>';
 		self::render_panel_end();
-		self::render_panel_start( 'Decision guide', 'Most rows are handled automatically. This screen is for the small set of rows where the system needs a safe operator decision.' );
-		echo '<div class="amc-admin-grid amc-admin-grid--cards">';
-		echo '<div class="amc-admin-card"><span>Match</span><strong>Auto</strong><p> EVIDENCE WAS STRONG. LINKED TO EXISTING RECORD.</p></div>';
-		echo '<div class="amc-admin-card"><span>Entity</span><strong>Created</strong><p>ROW WAS NEW AND UNAMBIGUOUS. RECORD FORMED.</p></div>';
-		echo '<div class="amc-admin-card"><span>Review</span><strong>Needed</strong><p>TARGET FOUND BUT REQUIRES MANUAL VERIFICATION.</p></div>';
-		echo '<div class="amc-admin-card"><span>Action</span><strong>Rejected</strong><p>INVALID OR UNSAFE. REMOVED FROM WORKFLOW.</p></div>';
-		echo '</div>';
-		self::render_panel_end();
-		self::render_panel_start( 'Manual override tools', 'Manual override decisions now persist to the matching queue and source row records, and they are recorded as manual overrides in the pipeline state.' );
+
+		self::render_panel_start( 'Manual override', 'Manually link a review-needed row to a specific existing record. Use this when the system suggestion is wrong.' );
 		self::open_form(
 			'row_action',
 			array(
@@ -1582,10 +1654,15 @@ class AMC_Admin {
 			)
 		);
 		echo '<div class="amc-admin-form">';
+		if ( $override ) {
+			echo '<p class="amc-admin-inline-meta">Overriding queue item #' . (int) $override['id'] . '</p>';
+		} else {
+			echo '<p class="amc-admin-inline-meta">Click "Override target" on a review-needed row above to pre-fill this form.</p>';
+		}
 		self::field_input( 'Queue item ID', 'id_display', $override ? (string) $override['id'] : '', 'text' );
 		self::field_select( 'Entity type', 'override_entity_type', $override ? $override['entity_type'] : 'track', array( 'track' => 'Track', 'artist' => 'Artist', 'album' => 'Album' ) );
 		self::field_select( 'Target record', 'override_entity_id', $override ? (int) $override['candidate_entity_id'] : 0, self::merged_entity_options() );
-		self::field_textarea( 'Override reason', 'notes', $override ? $override['notes'] : 'Regional title variant / metadata mismatch' );
+		self::field_textarea( 'Reason', 'notes', $override ? $override['notes'] : '' );
 		echo '</div>';
 		self::submit_row( array( array( 'label' => 'Save override', 'class' => 'button-primary' ) ) );
 		self::close_form();
@@ -2679,10 +2756,11 @@ class AMC_Admin {
 		self::assert_cap( 'amc_view_dashboard' );
 		check_admin_referer( 'amc_bulk_action' );
 
-		$entity   = isset( $_POST['entity'] ) ? sanitize_key( wp_unslash( $_POST['entity'] ) ) : '';
-		$task     = isset( $_POST['task'] ) ? sanitize_key( wp_unslash( $_POST['task'] ) ) : '';
-		$selected = isset( $_POST['selected_ids'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['selected_ids'] ) ) : array();
-		$redirect = self::posted_redirect();
+		$entity   = isset( $_REQUEST['entity'] ) ? sanitize_key( wp_unslash( $_REQUEST['entity'] ) ) : '';
+		$task     = isset( $_REQUEST['task'] ) ? sanitize_key( wp_unslash( $_REQUEST['task'] ) ) : '';
+		$selected = isset( $_REQUEST['selected_ids'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_REQUEST['selected_ids'] ) ) : array();
+		$redirect = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : wp_get_referer();
+		$redirect = $redirect ? $redirect : admin_url( 'admin.php?page=kontentainment-charts' );
 
 		if ( 'job' === $entity ) {
 			$result = AMC_Ingestion::bulk_job_action( $task, $selected );

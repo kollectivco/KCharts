@@ -1806,14 +1806,20 @@ class AMC_Ingestion {
 		$context       = is_array( $context ) ? $context : array();
 		$group_key     = self::notification_group_key( $type, $message, $context );
 		$updated       = false;
+		$group_exists  = false;
 
 		foreach ( $notifications as &$notification ) {
 			if ( empty( $notification['group_key'] ) || $notification['group_key'] !== $group_key ) {
 				continue;
 			}
 
+			// Group key exists — track that we saw it regardless of dismissed state.
+			$group_exists = true;
+
 			if ( ! empty( $notification['is_dismissed'] ) ) {
-				continue;
+				// Dismissed notification stays dismissed; do not re-surface it.
+				$updated = true; // Prevent fall-through new-entry creation.
+				break;
 			}
 
 			$count = ! empty( $notification['occurrence_count'] ) ? (int) $notification['occurrence_count'] : 1;

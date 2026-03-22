@@ -59,4 +59,31 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 		});
 	});
+
+	// Action link feedback: show loading state on action links to give immediate feedback.
+	const ACTION_SELECTORS = [
+		'a.amc-action-btn',
+		'a.amc-alert-action',
+		'.amc-admin-table a[href*="amc_row_action"]',
+		'.amc-admin-alerts a[href*="amc_row_action"]',
+	].join(', ');
+
+	document.querySelectorAll(ACTION_SELECTORS).forEach(function (link) {
+		link.addEventListener('click', function (event) {
+			// For confirm-guarded links, wait until confirm passes.
+			const isConfirm = link.href && link.href.indexOf('amc_confirm=') !== -1;
+			if (isConfirm) { return; }
+
+			const originalText = link.textContent;
+			link.setAttribute('data-amc-loading', '1');
+			link.textContent = 'Working\u2026';
+
+			// Safety fallback: restore after 8s in case navigation stalls.
+			setTimeout(function () {
+				link.removeAttribute('data-amc-loading');
+				link.setAttribute('data-amc-done', '1');
+				link.textContent = originalText;
+			}, 8000);
+		});
+	});
 });
