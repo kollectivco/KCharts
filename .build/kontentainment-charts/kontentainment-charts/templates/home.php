@@ -39,7 +39,7 @@ include AMC_PLUGIN_DIR . 'templates/parts/site-header.php';
 					<?php if ( $hero_chart && $public_state['has_published_data'] ) : ?>
 						<a class="amc-button amc-button--ghost" href="<?php echo esc_url( $hero_chart['url'] ); ?>">Open Lead Chart</a>
 					<?php else : ?>
-						<a class="amc-button amc-button--ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=kcharts' ) ); ?>">Open Dashboard</a>
+						<a class="amc-button amc-button--ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=kontentainment-charts' ) ); ?>">Open Dashboard</a>
 					<?php endif; ?>
 				</div>
 			</div>

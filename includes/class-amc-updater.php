@@ -16,7 +16,7 @@ class AMC_Updater {
 	/**
 	 * Packaged ZIP file name.
 	 */
-	const PACKAGE_FILE = 'kcharts.zip';
+	const PACKAGE_FILE = 'kontentainment-charts.zip';
 
 	/**
 	 * Bootstrap hooks.
@@ -153,7 +153,7 @@ class AMC_Updater {
 		$links[] = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( self::check_updates_url() ),
-			esc_html__( 'Check for updates', 'kcharts' )
+			esc_html__( 'Check for updates', 'kontentainment-charts' )
 		);
 
 		return $links;

@@ -769,7 +769,16 @@ class AMC_Ingestion {
 					);
 
 					self::log( $upload_id, (int) $row['id'], 'auto_create', 'info', 'Missing entity was created automatically from a valid unambiguous row.', $creation_result );
-					self::notify( 'info', 'Auto-create created a new entity from an upload row.', array( 'upload_id' => $upload_id, 'entity_type' => $entity_type, 'entity_id' => $entity_id ) );
+					self::notify(
+						'info',
+						'Auto-create created a new entity from an upload row.',
+						array(
+							'upload_id'   => $upload_id,
+							'entity_type' => $entity_type,
+							'entity_id'   => $entity_id,
+							'group_key'   => 'auto_create',
+						)
+					);
 				} else {
 					AMC_DB::save_row(
 						'source_rows',
@@ -1792,24 +1801,141 @@ class AMC_Ingestion {
 	 */
 	private static function notify( $type, $message, $context = array() ) {
 		$notifications = get_option( 'amc_operator_notifications', array() );
-		$notifications[] = array(
-			'id'         => uniqid( 'amc_notice_', true ),
-			'type'       => sanitize_key( $type ),
-			'message'    => sanitize_text_field( $message ),
-			'context'    => $context,
-			'status'     => 'unread',
-			'is_read'    => 0,
-			'is_dismissed' => 0,
-			'created_at' => current_time( 'mysql' ),
-			'read_at'    => '',
-			'dismissed_at' => '',
-		);
+		$type          = sanitize_key( $type );
+		$message       = sanitize_text_field( $message );
+		$context       = is_array( $context ) ? $context : array();
+		$group_key     = self::notification_group_key( $type, $message, $context );
+		$updated       = false;
 
-		if ( count( $notifications ) > 30 ) {
-			$notifications = array_slice( $notifications, -30 );
+		foreach ( $notifications as &$notification ) {
+			if ( empty( $notification['group_key'] ) || $notification['group_key'] !== $group_key ) {
+				continue;
+			}
+
+			if ( ! empty( $notification['is_dismissed'] ) ) {
+				continue;
+			}
+
+			$count = ! empty( $notification['occurrence_count'] ) ? (int) $notification['occurrence_count'] : 1;
+			++$count;
+			$notification['type']             = $type;
+			$notification['message']          = self::human_notification_message( $message, $context, $count );
+			$notification['context']          = self::merge_notification_context( ! empty( $notification['context'] ) && is_array( $notification['context'] ) ? $notification['context'] : array(), $context );
+			$notification['status']           = 'unread';
+			$notification['is_read']          = 0;
+			$notification['occurrence_count'] = $count;
+			$notification['last_seen_at']     = current_time( 'mysql' );
+			$updated                          = true;
+			break;
+		}
+		unset( $notification );
+
+		if ( ! $updated ) {
+			$notifications[] = array(
+				'id'               => uniqid( 'amc_notice_', true ),
+				'type'             => $type,
+				'message'          => self::human_notification_message( $message, $context, 1 ),
+				'group_key'        => $group_key,
+				'context'          => $context,
+				'status'           => 'unread',
+				'is_read'          => 0,
+				'is_dismissed'     => 0,
+				'occurrence_count' => 1,
+				'created_at'       => current_time( 'mysql' ),
+				'last_seen_at'     => current_time( 'mysql' ),
+				'read_at'          => '',
+				'dismissed_at'     => '',
+			);
+		}
+
+		if ( count( $notifications ) > 100 ) {
+			// Sort so that unread and newer notifications are at the end, then slice.
+			// But the current implementation just appends. Let's just slice the last 100 for now.
+			$notifications = array_slice( $notifications, -100 );
 		}
 
 		update_option( 'amc_operator_notifications', $notifications, false );
+	}
+
+	/**
+	 * Build a stable notification grouping key.
+	 *
+	 * @param string $type Severity.
+	 * @param string $message Message.
+	 * @param array  $context Context.
+	 * @return string
+	 */
+	private static function notification_group_key( $type, $message, $context ) {
+		$parts = array( $type, $message );
+
+		foreach ( array( 'upload_id', 'chart_id', 'week_id', 'job_type', 'chart_date', 'country', 'entity_type', 'alert_type' ) as $key ) {
+			if ( isset( $context[ $key ] ) && '' !== (string) $context[ $key ] ) {
+				$parts[] = $key . ':' . $context[ $key ];
+			}
+		}
+
+		if ( ! empty( $context['group_key'] ) ) {
+			$parts[] = 'group:' . sanitize_key( $context['group_key'] );
+		}
+
+		return md5( implode( '|', $parts ) );
+	}
+
+	/**
+	 * Merge notification contexts without losing primary references.
+	 *
+	 * @param array $existing Existing context.
+	 * @param array $incoming Incoming context.
+	 * @return array
+	 */
+	private static function merge_notification_context( $existing, $incoming ) {
+		$merged = array_merge( $existing, $incoming );
+
+		if ( empty( $merged['related_ids'] ) ) {
+			$merged['related_ids'] = array();
+		}
+
+		foreach ( array( 'entity_id', 'job_id', 'upload_id', 'week_id' ) as $key ) {
+			if ( ! empty( $incoming[ $key ] ) ) {
+				$merged['related_ids'][ $key ] = array_values(
+					array_unique(
+						array_merge(
+							! empty( $merged['related_ids'][ $key ] ) && is_array( $merged['related_ids'][ $key ] ) ? $merged['related_ids'][ $key ] : array(),
+							array( (int) $incoming[ $key ] )
+						)
+					)
+				);
+			}
+		}
+
+		return $merged;
+	}
+
+	/**
+	 * Humanize grouped notification messages.
+	 *
+	 * @param string $message Raw message.
+	 * @param array  $context Context.
+	 * @param int    $count Occurrence count.
+	 * @return string
+	 */
+	private static function human_notification_message( $message, $context, $count ) {
+		if ( ! empty( $context['group_key'] ) && 'auto_create' === $context['group_key'] ) {
+			$entity_type = ! empty( $context['entity_type'] ) ? strtolower( (string) $context['entity_type'] ) : 'record';
+			return 1 === $count
+				? sprintf( '1 %s was created automatically from validated upload data and is ready to use.', $entity_type )
+				: sprintf( '%d %ss were created automatically from validated upload data and are ready to use.', $count, $entity_type );
+		}
+
+		if ( false !== stripos( $message, 'Matching review queue has items' ) && ! empty( $context['review_needed'] ) ) {
+			return sprintf( '%d rows need manual review before generation can continue.', (int) $context['review_needed'] );
+		}
+
+		if ( $count > 1 && false !== stripos( $message, 'queued for automatic retry' ) ) {
+			return sprintf( '%d jobs were queued for retry after failures.', $count );
+		}
+
+		return $count > 1 ? sprintf( '%s (%dx)', $message, $count ) : $message;
 	}
 
 	/**
@@ -1830,6 +1956,16 @@ class AMC_Ingestion {
 	 */
 	public static function mark_notification_read( $notification_id ) {
 		return self::update_notification_state( $notification_id, 'read' );
+	}
+
+	/**
+	 * Mark a notification unread.
+	 *
+	 * @param string $notification_id Notification id.
+	 * @return array
+	 */
+	public static function mark_notification_unread( $notification_id ) {
+		return self::update_notification_state( $notification_id, 'unread' );
 	}
 
 	/**
@@ -1863,6 +1999,26 @@ class AMC_Ingestion {
 	}
 
 	/**
+	 * Mark matching notifications unread in bulk.
+	 *
+	 * @param array $filters Filters.
+	 * @return array
+	 */
+	public static function mark_notifications_unread( $filters = array() ) {
+		return self::bulk_update_notifications( $filters, 'unread' );
+	}
+
+	/**
+	 * Clear resolved notifications.
+	 *
+	 * @param array $filters Filters.
+	 * @return array
+	 */
+	public static function clear_resolved_notifications( $filters = array() ) {
+		return self::bulk_update_notifications( $filters, 'clear_resolved' );
+	}
+
+	/**
 	 * Update notification state.
 	 *
 	 * @param string $notification_id Notification id.
@@ -1888,6 +2044,14 @@ class AMC_Ingestion {
 				$notification['status']        = 'dismissed';
 				$notification['is_dismissed']  = 1;
 				$notification['dismissed_at']  = current_time( 'mysql' );
+			}
+
+			if ( 'unread' === $state ) {
+				$notification['status']        = 'unread';
+				$notification['is_read']       = 0;
+				$notification['is_dismissed']  = 0;
+				$notification['read_at']       = '';
+				$notification['dismissed_at']  = '';
 			}
 
 			$updated = true;
@@ -1931,8 +2095,33 @@ class AMC_Ingestion {
 				$notification['dismissed_at'] = current_time( 'mysql' );
 				++$count;
 			}
+
+			if ( 'unread' === $state && ( ! empty( $notification['is_read'] ) || ! empty( $notification['is_dismissed'] ) ) ) {
+				$notification['status']       = 'unread';
+				$notification['is_read']      = 0;
+				$notification['is_dismissed'] = 0;
+				$notification['read_at']      = '';
+				$notification['dismissed_at'] = '';
+				++$count;
+			}
+
+			if ( 'clear_resolved' === $state && ( ! empty( $notification['is_read'] ) || ! empty( $notification['is_dismissed'] ) ) ) {
+				$notification['__amc_remove'] = true;
+				++$count;
+			}
 		}
 		unset( $notification );
+
+		if ( 'clear_resolved' === $state ) {
+			$notifications = array_values(
+				array_filter(
+					$notifications,
+					function ( $notification ) {
+						return empty( $notification['__amc_remove'] );
+					}
+				)
+			);
+		}
 
 		update_option( 'amc_operator_notifications', $notifications, false );
 

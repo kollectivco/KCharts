@@ -80,7 +80,7 @@ class AMC_Admin {
 	 * @return void
 	 */
 	public static function enqueue_assets( $hook_suffix ) {
-		if ( false === strpos( $hook_suffix, 'kcharts' ) ) {
+		if ( false === strpos( $hook_suffix, 'kontentainment-charts' ) ) {
 			return;
 		}
 
@@ -106,7 +106,7 @@ class AMC_Admin {
 	 * @return void
 	 */
 	public static function render_page() {
-		$slug       = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts';
+		$slug       = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts';
 		$admin_page = self::find_admin_page_by_slug( $slug );
 		$legacy     = self::find_legacy_page_by_slug( $slug );
 
@@ -135,7 +135,7 @@ class AMC_Admin {
 		}
 
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to access Kontentainment Charts dashboard.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to access Kontentainment Charts dashboard.', 'kontentainment-charts' ) );
 		}
 
 		$key      = self::get_dashboard_section_key();
@@ -160,7 +160,7 @@ class AMC_Admin {
 					<?php endforeach; ?>
 				</nav>
 				<div class="amc-custom-dashboard__sidebar-footer">
-					<a class="amc-custom-dashboard__utility" href="<?php echo esc_url( admin_url( 'admin.php?page=kcharts' ) ); ?>">Open wp-admin control layer</a>
+					<a class="amc-custom-dashboard__utility" href="<?php echo esc_url( admin_url( 'admin.php?page=kontentainment-charts' ) ); ?>">Open wp-admin control layer</a>
 				</div>
 			</div>
 			<div class="amc-custom-dashboard__main">
@@ -172,7 +172,7 @@ class AMC_Admin {
 					</div>
 					<div class="amc-admin-topbar__actions">
 						<?php self::render_theme_toggle(); ?>
-						<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kcharts-settings' ) ); ?>">wp-admin Settings</a>
+						<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kontentainment-charts-settings' ) ); ?>">wp-admin Settings</a>
 						<button type="button" class="button button-primary">New Working Draft</button>
 					</div>
 				</header>
@@ -290,7 +290,7 @@ class AMC_Admin {
 				</header>
 				<div class="amc-admin-button-row">
 					<a class="button button-primary" href="<?php echo esc_url( $target ); ?>">Open Dashboard Section</a>
-					<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kcharts' ) ); ?>">Back to Overview</a>
+					<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kontentainment-charts' ) ); ?>">Back to Overview</a>
 				</div>
 			</section>
 		</div>
@@ -420,7 +420,7 @@ class AMC_Admin {
 
 		self::render_panel_start( 'System logs', 'Operational diagnostics with filters for upload, source, country, chart, status, and date range.' );
 		echo '<form method="get" class="amc-admin-form">';
-		echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts-logs' ) . '">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts-logs' ) . '">';
 		self::field_input( 'Upload ID', 'log_upload_id', ! empty( $filters['upload_id'] ) ? (string) $filters['upload_id'] : '', 'number' );
 		self::field_select( 'Source', 'log_source_platform', $filters['source_platform'], array( '' => 'All sources' ) + self::source_platform_options() );
 		self::field_input( 'Country', 'log_country', $filters['country'] );
@@ -492,14 +492,14 @@ class AMC_Admin {
 		echo '</div>';
 		echo '<form method="get" class="amc-admin-form">';
 		if ( $wp_admin ) {
-			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts-notifications' ) . '">';
+			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts-notifications' ) . '">';
 		}
 		self::field_select( 'Severity', 'notice_severity', $filters['severity'], array( '' => 'All severities', 'info' => 'Info', 'success' => 'Success', 'warning' => 'Warning', 'error' => 'Error' ) );
 		self::field_select( 'Status', 'notice_status', $filters['status'], array( '' => 'All statuses', 'unread' => 'Unread', 'read' => 'Read', 'dismissed' => 'Dismissed' ) );
 		self::field_input( 'Date', 'notice_date', $filters['date'], 'date' );
 		self::submit_row( array( array( 'label' => 'Filter notifications', 'class' => 'button-primary' ) ) );
 		echo '</form>';
-		$this_url = $wp_admin ? admin_url( 'admin.php?page=kcharts-notifications' ) : AMC_Admin_Data::custom_dashboard_url( 'notifications' );
+		$this_url = $wp_admin ? admin_url( 'admin.php?page=kontentainment-charts-notifications' ) : AMC_Admin_Data::custom_dashboard_url( 'notifications' );
 		echo '<div class="amc-admin-button-row">';
 		echo '<a class="button button-secondary" href="' . esc_url( $this_url ) . '">Reset filters</a>';
 		if ( $wp_admin ) {
@@ -878,7 +878,7 @@ class AMC_Admin {
 		self::render_panel_start( 'Jobs and queue', 'Queue controls for retrying failures, cancelling queued tasks, rerunning safe completed tasks, and manually advancing queued work.' );
 		echo '<form method="get" class="amc-admin-form">';
 		if ( is_admin() ) {
-			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts' ) . '">';
+			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts' ) . '">';
 		}
 		self::field_select( 'State', 'job_status', $filters['status'], array( '' => 'All states', 'queued' => 'Queued', 'running' => 'Running', 'completed' => 'Completed', 'failed' => 'Failed', 'cancelled' => 'Cancelled' ) );
 		self::field_select( 'Job type', 'job_type', $filters['job_type'], array( '' => 'All types', 'parse_upload' => 'Parse Upload', 'rerun_matching' => 'Rerun Matching', 'auto_create_processing' => 'Auto-create Processing', 'generate_chart' => 'Generate Chart', 'publish_checks' => 'Publish Checks', 'cleanup_diagnostics' => 'Cleanup Diagnostics' ) );
@@ -2276,7 +2276,7 @@ class AMC_Admin {
 	 */
 	public static function handle_save_entity() {
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to save Kontentainment Charts data.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to save Kontentainment Charts data.', 'kontentainment-charts' ) );
 		}
 
 		check_admin_referer( 'amc_save_entity' );
@@ -2452,7 +2452,7 @@ class AMC_Admin {
 	 */
 	public static function handle_row_action() {
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage Kontentainment Charts records.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to manage Kontentainment Charts records.', 'kontentainment-charts' ) );
 		}
 
 		check_admin_referer( 'amc_row_action' );
@@ -2755,7 +2755,7 @@ class AMC_Admin {
 	 */
 	private static function export_debug_csv( $task, $id ) {
 		$rows     = array();
-		$filename = 'kcharts-export.csv';
+		$filename = 'kontentainment-charts-export.csv';
 
 		if ( 'logs' === $task ) {
 			$filters = array();
@@ -2763,17 +2763,17 @@ class AMC_Admin {
 				$filters['upload_id'] = $id;
 			}
 			$rows     = AMC_Admin_Data::logs( $filters );
-			$filename = $id > 0 ? 'kcharts-upload-' . $id . '-logs.csv' : 'kcharts-logs.csv';
+			$filename = $id > 0 ? 'kontentainment-charts-upload-' . $id . '-logs.csv' : 'kontentainment-charts-logs.csv';
 		} elseif ( 'invalid_rows' === $task ) {
 			$rows     = AMC_Ingestion::invalid_rows( $id, 500 );
-			$filename = 'kcharts-upload-' . $id . '-invalid-rows.csv';
+			$filename = 'kontentainment-charts-upload-' . $id . '-invalid-rows.csv';
 		} elseif ( 'dropped_out' === $task ) {
 			$week     = AMC_DB::get_row( 'chart_weeks', $id );
 			$rows     = $week && ! empty( $week['dropped_out_json'] ) ? json_decode( $week['dropped_out_json'], true ) : array();
-			$filename = 'kcharts-week-' . $id . '-dropped-out.csv';
+			$filename = 'kontentainment-charts-week-' . $id . '-dropped-out.csv';
 		} elseif ( 'matching_queue' === $task ) {
 			$rows     = AMC_Admin_Data::matching_candidates();
-			$filename = 'kcharts-matching-queue.csv';
+			$filename = 'kontentainment-charts-matching-queue.csv';
 		}
 
 		if ( empty( $rows ) ) {
@@ -2850,7 +2850,7 @@ class AMC_Admin {
 	 */
 	private static function assert_cap( $cap ) {
 		if ( ! current_user_can( $cap ) ) {
-			wp_die( esc_html__( 'You do not have permission to perform this action.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'kontentainment-charts' ) );
 		}
 	}
 
@@ -2862,7 +2862,7 @@ class AMC_Admin {
 	private static function posted_redirect() {
 		$redirect = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : wp_get_referer();
 
-		return $redirect ? $redirect : admin_url( 'admin.php?page=kcharts' );
+		return $redirect ? $redirect : admin_url( 'admin.php?page=kontentainment-charts' );
 	}
 
 	/**

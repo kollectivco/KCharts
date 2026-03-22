@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'AMC_PLUGIN_VERSION', '4.3.3' );
-define( 'AMC_PLUGIN_SLUG', 'kcharts' );
+define( 'AMC_PLUGIN_SLUG', 'kontentainment-charts' );
 define( 'AMC_PLUGIN_FILE', __FILE__ );
 define( 'AMC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AMC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

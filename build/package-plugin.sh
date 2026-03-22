@@ -3,8 +3,8 @@ set -eu
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
-SLUG="kcharts"
-MAIN_FILE="kcharts.php"
+SLUG="kontentainment-charts"
+MAIN_FILE="kontentainment-charts.php"
 BUILD_DIR="$PLUGIN_ROOT/.build/$SLUG"
 STAGE_DIR="$BUILD_DIR/$SLUG"
 DIST_DIR="$PLUGIN_ROOT/dist"

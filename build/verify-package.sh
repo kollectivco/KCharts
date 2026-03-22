@@ -12,17 +12,21 @@ python3 - "$ZIP_PATH" <<'PY'
 import sys, zipfile
 
 zip_path = sys.argv[1]
-slug = 'kcharts'
-main_file = f'{slug}/kcharts.php'
-forbidden = ('KTEvents', 'kontentainment-events', 'charts-platform.php', 'kontentainment-charts', '.codex/', '__MACOSX', '.DS_Store')
+slug = 'kontentainment-charts'
+main_file = f'{slug}/kontentainment-charts.php'
+forbidden = ('KTEvents', 'kontentainment-events', 'charts-platform.php', 'kcharts', '.codex/', '__MACOSX', '.DS_Store')
 
 with zipfile.ZipFile(zip_path) as archive:
     names = archive.namelist()
     roots = sorted({name.split('/')[0] for name in names if name})
     if roots != [slug]:
-        raise SystemExit(f'Invalid ZIP root: {roots!r}')
+        raise SystemExit(f'Failed package build: ZIP root folder is not {slug}/ (found {roots!r})')
     if main_file not in names:
-        raise SystemExit(f'Missing main plugin file: {main_file}')
+        raise SystemExit(f'Failed package build: Main plugin file is not {main_file}')
+    
+    # check if basename and slug are correct
+    if f"{slug}/{slug}.php" != main_file:
+        raise SystemExit(f'Failed package build: Plugin basename/slug do not match {slug}')
     plugin_headers = []
     for name in names:
         if any(token in name for token in forbidden):
@@ -37,7 +41,7 @@ with zipfile.ZipFile(zip_path) as archive:
     header = archive.read(main_file).decode('utf-8', 'ignore')
     required = (
         'Plugin Name: Kontentainment Charts',
-        'Text Domain: kcharts',
+        'Text Domain: kontentainment-charts',
     )
     for needle in required:
         if needle not in header:

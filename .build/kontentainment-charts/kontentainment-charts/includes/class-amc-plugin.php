@@ -80,10 +80,10 @@ class AMC_Plugin {
 		register_post_type(
 			'amc_artist',
 			array(
-				'label'               => __( 'Artists', 'kcharts' ),
+				'label'               => __( 'Artists', 'kontentainment-charts' ),
 				'labels'              => array(
-					'name'          => __( 'Artists', 'kcharts' ),
-					'singular_name' => __( 'Artist', 'kcharts' ),
+					'name'          => __( 'Artists', 'kontentainment-charts' ),
+					'singular_name' => __( 'Artist', 'kontentainment-charts' ),
 				),
 				'public'              => false,
 				'show_ui'             => false,
@@ -99,10 +99,10 @@ class AMC_Plugin {
 		register_post_type(
 			'amc_track',
 			array(
-				'label'               => __( 'Tracks', 'kcharts' ),
+				'label'               => __( 'Tracks', 'kontentainment-charts' ),
 				'labels'              => array(
-					'name'          => __( 'Tracks', 'kcharts' ),
-					'singular_name' => __( 'Track', 'kcharts' ),
+					'name'          => __( 'Tracks', 'kontentainment-charts' ),
+					'singular_name' => __( 'Track', 'kontentainment-charts' ),
 				),
 				'public'              => false,
 				'show_ui'             => false,
@@ -118,10 +118,10 @@ class AMC_Plugin {
 		register_post_type(
 			'amc_album',
 			array(
-				'label'               => __( 'Albums', 'kcharts' ),
+				'label'               => __( 'Albums', 'kontentainment-charts' ),
 				'labels'              => array(
-					'name'          => __( 'Albums', 'kcharts' ),
-					'singular_name' => __( 'Album', 'kcharts' ),
+					'name'          => __( 'Albums', 'kontentainment-charts' ),
+					'singular_name' => __( 'Album', 'kontentainment-charts' ),
 				),
 				'public'              => false,
 				'show_ui'             => false,
@@ -137,10 +137,10 @@ class AMC_Plugin {
 		register_post_type(
 			'amc_chart',
 			array(
-				'label'               => __( 'Charts', 'kcharts' ),
+				'label'               => __( 'Charts', 'kontentainment-charts' ),
 				'labels'              => array(
-					'name'          => __( 'Charts', 'kcharts' ),
-					'singular_name' => __( 'Chart', 'kcharts' ),
+					'name'          => __( 'Charts', 'kontentainment-charts' ),
+					'singular_name' => __( 'Chart', 'kontentainment-charts' ),
 				),
 				'public'              => false,
 				'show_ui'             => false,
@@ -157,7 +157,7 @@ class AMC_Plugin {
 			'amc_chart_group',
 			array( 'amc_chart' ),
 			array(
-				'label'              => __( 'Chart Groups', 'kcharts' ),
+				'label'              => __( 'Chart Groups', 'kontentainment-charts' ),
 				'public'             => false,
 				'show_ui'            => false,
 				'hierarchical'       => true,
@@ -183,21 +183,21 @@ class AMC_Plugin {
 				'amc-admin',
 				AMC_PLUGIN_URL . 'assets/css/admin.css',
 				array(),
-				AMC_PLUGIN_VERSION
+				filemtime( AMC_PLUGIN_DIR . 'assets/css/admin.css' )
 			);
 
 			wp_enqueue_style(
 				'amc-dashboard',
 				AMC_PLUGIN_URL . 'assets/css/dashboard.css',
 				array( 'amc-admin' ),
-				AMC_PLUGIN_VERSION
+				filemtime( AMC_PLUGIN_DIR . 'assets/css/dashboard.css' )
 			);
 
 			wp_enqueue_script(
 				'amc-admin',
 				AMC_PLUGIN_URL . 'assets/js/admin.js',
 				array(),
-				AMC_PLUGIN_VERSION,
+				filemtime( AMC_PLUGIN_DIR . 'assets/js/admin.js' ),
 				true
 			);
 
@@ -216,14 +216,14 @@ class AMC_Plugin {
 			'amc-frontend',
 			AMC_PLUGIN_URL . 'assets/css/frontend.css',
 			array(),
-			AMC_PLUGIN_VERSION
+			filemtime( AMC_PLUGIN_DIR . 'assets/css/frontend.css' )
 		);
 
 		wp_enqueue_script(
 			'amc-frontend',
 			AMC_PLUGIN_URL . 'assets/js/frontend.js',
 			array(),
-			AMC_PLUGIN_VERSION,
+			filemtime( AMC_PLUGIN_DIR . 'assets/js/frontend.js' ),
 			true
 		);
 	}

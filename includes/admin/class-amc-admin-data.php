@@ -15,19 +15,19 @@ class AMC_Admin_Data {
 	 */
 	public static function pages() {
 		return array(
-			'dashboard'      => array( 'menu_slug' => 'kcharts', 'title' => 'Dashboard' ),
-			'charts'         => array( 'menu_slug' => 'kcharts-charts', 'title' => 'Charts Management' ),
-			'weekly-entries' => array( 'menu_slug' => 'kcharts-weeks', 'title' => 'Weekly Chart Entries' ),
-			'tracks'         => array( 'menu_slug' => 'kcharts-tracks', 'title' => 'Tracks Management' ),
-			'artists'        => array( 'menu_slug' => 'kcharts-artists', 'title' => 'Artists Management' ),
-			'albums'         => array( 'menu_slug' => 'kcharts-albums', 'title' => 'Albums Management' ),
-			'uploads'        => array( 'menu_slug' => 'kcharts-uploads', 'title' => 'Source Uploads' ),
-			'cleaning'       => array( 'menu_slug' => 'kcharts-cleaning', 'title' => 'Matching and Cleaning' ),
-			'scoring'        => array( 'menu_slug' => 'kcharts-scoring', 'title' => 'Scoring Rules' ),
-			'publishing'     => array( 'menu_slug' => 'kcharts-publishing', 'title' => 'Publishing' ),
-			'archives'       => array( 'menu_slug' => 'kcharts-archives', 'title' => 'Archive Management' ),
-			'users'          => array( 'menu_slug' => 'kcharts-users', 'title' => 'Users and Roles' ),
-			'settings'       => array( 'menu_slug' => 'kcharts-settings', 'title' => 'Settings' ),
+			'dashboard'      => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Dashboard' ),
+			'charts'         => array( 'menu_slug' => 'kontentainment-charts-charts', 'title' => 'Charts Management' ),
+			'weekly-entries' => array( 'menu_slug' => 'kontentainment-charts-weeks', 'title' => 'Weekly Chart Entries' ),
+			'tracks'         => array( 'menu_slug' => 'kontentainment-charts-tracks', 'title' => 'Tracks Management' ),
+			'artists'        => array( 'menu_slug' => 'kontentainment-charts-artists', 'title' => 'Artists Management' ),
+			'albums'         => array( 'menu_slug' => 'kontentainment-charts-albums', 'title' => 'Albums Management' ),
+			'uploads'        => array( 'menu_slug' => 'kontentainment-charts-uploads', 'title' => 'Source Uploads' ),
+			'cleaning'       => array( 'menu_slug' => 'kontentainment-charts-cleaning', 'title' => 'Matching and Cleaning' ),
+			'scoring'        => array( 'menu_slug' => 'kontentainment-charts-scoring', 'title' => 'Scoring Rules' ),
+			'publishing'     => array( 'menu_slug' => 'kontentainment-charts-publishing', 'title' => 'Publishing' ),
+			'archives'       => array( 'menu_slug' => 'kontentainment-charts-archives', 'title' => 'Archive Management' ),
+			'users'          => array( 'menu_slug' => 'kontentainment-charts-users', 'title' => 'Users and Roles' ),
+			'settings'       => array( 'menu_slug' => 'kontentainment-charts-settings', 'title' => 'Settings' ),
 		);
 	}
 
@@ -38,13 +38,13 @@ class AMC_Admin_Data {
 	 */
 	public static function wp_admin_pages() {
 		return array(
-			'overview'       => array( 'menu_slug' => 'kcharts', 'title' => 'Overview' ),
-			'notifications'  => array( 'menu_slug' => 'kcharts-notifications', 'title' => 'Notifications' ),
-			'settings'       => array( 'menu_slug' => 'kcharts-settings', 'title' => 'Settings' ),
-			'tools'          => array( 'menu_slug' => 'kcharts-tools', 'title' => 'Tools' ),
-			'logs'           => array( 'menu_slug' => 'kcharts-logs', 'title' => 'Logs' ),
-			'permissions'    => array( 'menu_slug' => 'kcharts-permissions', 'title' => 'Permissions' ),
-			'open-dashboard' => array( 'menu_slug' => 'kcharts-open-dashboard', 'title' => 'Open Dashboard' ),
+			'overview'       => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Overview' ),
+			'notifications'  => array( 'menu_slug' => 'kontentainment-charts-notifications', 'title' => 'Notifications' ),
+			'settings'       => array( 'menu_slug' => 'kontentainment-charts-settings', 'title' => 'Settings' ),
+			'tools'          => array( 'menu_slug' => 'kontentainment-charts-tools', 'title' => 'Tools' ),
+			'logs'           => array( 'menu_slug' => 'kontentainment-charts-logs', 'title' => 'Logs' ),
+			'permissions'    => array( 'menu_slug' => 'kontentainment-charts-permissions', 'title' => 'Permissions' ),
+			'open-dashboard' => array( 'menu_slug' => 'kontentainment-charts-open-dashboard', 'title' => 'Open Dashboard' ),
 		);
 	}
 
@@ -956,7 +956,7 @@ class AMC_Admin_Data {
 					'recommended_action' => $recommended,
 					'resolution' => $resolution,
 					'create_mode'=> 'auto_created' === $resolution ? trim( $auto_type . ' created automatically' ) : ( 'manual_override' === $resolution ? 'Manually overridden' : ( 'matched_existing' === $resolution ? 'Matched to existing entity' : ( (int) $row['candidate_entity_id'] > 0 ? 'Possible existing match' : 'Possible new entity' ) ) ),
-					'candidate_link' => (int) $row['candidate_entity_id'] > 0 ? admin_url( 'admin.php?page=kcharts-' . $row['entity_type'] . 's&' . $row['entity_type'] . '_id=' . (int) $row['candidate_entity_id'] ) : '',
+					'candidate_link' => (int) $row['candidate_entity_id'] > 0 ? admin_url( 'admin.php?page=kontentainment-charts-' . $row['entity_type'] . 's&' . $row['entity_type'] . '_id=' . (int) $row['candidate_entity_id'] ) : '',
 					'queue'      => $row,
 				);
 			},

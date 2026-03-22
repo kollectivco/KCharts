@@ -1,9 +1,9 @@
-=== KCharts ===
+=== Kontentainment Charts ===
 Contributors: kollectivco
 Tags: music, charts, artists, tracks, albums
 Requires at least: 6.0
 Tested up to: 6.5
-Stable tag: 4.3.2
+Stable tag: 4.3.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,11 +30,22 @@ Features:
 
 == Changelog ==
 
+= 4.3.5 =
+* UI/UX monochrome overhaul, improved matching table resolution views, smarter notification memory, and more consistent badge reporting logic safely formatted through the pipeline.
+* Cache-busting optimizations for enqueued scripts/styles during development workflows.
+
+= 4.3.4 =
+* Performance tweaks and PHP syntactical corrections.
+
+
+= 4.3.3 =
+* Renamed the standalone install identity to use the `kontentainment-charts/` plugin folder, `kontentainment-charts.php` main file, `kontentainment-charts` slug, `kontentainment-charts` text domain, and `kontentainment-charts.zip` package while preserving the Kontentainment Charts brand in the UI.
+
 = 4.3.2 =
-* Hardened plugin packaging so the install ZIP is built from an explicit allowlist, verified automatically, and contains only the `kcharts/` root with `kcharts.php` as the sole plugin entrypoint.
+* Hardened plugin packaging so the install ZIP is built from an explicit allowlist, verified automatically, and contains only the `kontentainment-charts/` root with `kontentainment-charts.php` as the sole plugin entrypoint.
 
 = 4.3.1 =
-* Fixed plugin identity and packaging so Kontentainment Charts installs as its own standalone plugin with the `kcharts` folder, `kcharts.php` main file, and a packaged ZIP rooted at `kcharts/`.
+* Fixed plugin identity and packaging so the plugin installs as its own standalone package with the `kontentainment-charts` folder, `kontentainment-charts.php` main file, and a packaged ZIP rooted at `kontentainment-charts/`.
 
 = 4.3.0 =
 * Added retry/backoff metadata, bulk queue and notification actions, external email/webhook alerts, richer notification linking, and deeper job history analytics for operational monitoring.
@@ -86,8 +97,8 @@ Features:
 * Added hybrid admin architecture with lightweight wp-admin controls and a full custom dashboard at `/charts-dashboard`.
 
 = 2.0.0 =
-* Added Phase 2 plugin-owned admin dashboard UI for Kontentainment Charts.
-* Renamed plugin and public brand references to Kontentainment Charts.
+* Added Phase 2 plugin-owned admin dashboard UI.
+* Preserved Kontentainment Charts as the visible product brand across the public and admin experience.
 
 = 1.1.0 =
 * Editorial frontend polish pass with richer chart summaries, deeper single pages, refined row styling, hover states, and improved mobile behavior.

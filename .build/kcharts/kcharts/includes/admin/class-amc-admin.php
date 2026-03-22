@@ -80,7 +80,7 @@ class AMC_Admin {
 	 * @return void
 	 */
 	public static function enqueue_assets( $hook_suffix ) {
-		if ( false === strpos( $hook_suffix, 'kcharts' ) ) {
+		if ( false === strpos( $hook_suffix, 'kontentainment-charts' ) ) {
 			return;
 		}
 
@@ -106,7 +106,7 @@ class AMC_Admin {
 	 * @return void
 	 */
 	public static function render_page() {
-		$slug       = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts';
+		$slug       = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts';
 		$admin_page = self::find_admin_page_by_slug( $slug );
 		$legacy     = self::find_legacy_page_by_slug( $slug );
 
@@ -134,7 +134,7 @@ class AMC_Admin {
 		}
 
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to access KCharts dashboard.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to access KCharts dashboard.', 'kontentainment-charts' ) );
 		}
 
 		$key      = self::get_dashboard_section_key();
@@ -865,7 +865,7 @@ class AMC_Admin {
 		self::render_panel_start( 'Jobs and queue', 'Queue controls for retrying failures, cancelling queued tasks, rerunning safe completed tasks, and manually advancing queued work.' );
 		echo '<form method="get" class="amc-admin-form">';
 		if ( is_admin() ) {
-			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts' ) . '">';
+			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts' ) . '">';
 		}
 		self::field_select( 'State', 'job_status', $filters['status'], array( '' => 'All states', 'queued' => 'Queued', 'running' => 'Running', 'completed' => 'Completed', 'failed' => 'Failed', 'cancelled' => 'Cancelled' ) );
 		self::field_select( 'Job type', 'job_type', $filters['job_type'], array( '' => 'All types', 'parse_upload' => 'Parse Upload', 'rerun_matching' => 'Rerun Matching', 'auto_create_processing' => 'Auto-create Processing', 'generate_chart' => 'Generate Chart', 'publish_checks' => 'Publish Checks', 'cleanup_diagnostics' => 'Cleanup Diagnostics' ) );
@@ -2228,7 +2228,7 @@ class AMC_Admin {
 	 */
 	public static function handle_save_entity() {
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to save KCharts data.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to save KCharts data.', 'kontentainment-charts' ) );
 		}
 
 		check_admin_referer( 'amc_save_entity' );
@@ -2404,7 +2404,7 @@ class AMC_Admin {
 	 */
 	public static function handle_row_action() {
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage KCharts records.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to manage KCharts records.', 'kontentainment-charts' ) );
 		}
 
 		check_admin_referer( 'amc_row_action' );
@@ -2796,7 +2796,7 @@ class AMC_Admin {
 	 */
 	private static function assert_cap( $cap ) {
 		if ( ! current_user_can( $cap ) ) {
-			wp_die( esc_html__( 'You do not have permission to perform this action.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'kontentainment-charts' ) );
 		}
 	}
 

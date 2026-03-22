@@ -1,6 +1,6 @@
 <?php
 /**
- * Database layer for KCharts.
+ * Database layer for Kontentainment Charts.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

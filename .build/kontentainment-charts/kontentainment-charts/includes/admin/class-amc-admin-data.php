@@ -15,19 +15,19 @@ class AMC_Admin_Data {
 	 */
 	public static function pages() {
 		return array(
-			'dashboard'      => array( 'menu_slug' => 'kcharts', 'title' => 'Dashboard' ),
-			'charts'         => array( 'menu_slug' => 'kcharts-charts', 'title' => 'Charts Management' ),
-			'weekly-entries' => array( 'menu_slug' => 'kcharts-weeks', 'title' => 'Weekly Chart Entries' ),
-			'tracks'         => array( 'menu_slug' => 'kcharts-tracks', 'title' => 'Tracks Management' ),
-			'artists'        => array( 'menu_slug' => 'kcharts-artists', 'title' => 'Artists Management' ),
-			'albums'         => array( 'menu_slug' => 'kcharts-albums', 'title' => 'Albums Management' ),
-			'uploads'        => array( 'menu_slug' => 'kcharts-uploads', 'title' => 'Source Uploads' ),
-			'cleaning'       => array( 'menu_slug' => 'kcharts-cleaning', 'title' => 'Matching and Cleaning' ),
-			'scoring'        => array( 'menu_slug' => 'kcharts-scoring', 'title' => 'Scoring Rules' ),
-			'publishing'     => array( 'menu_slug' => 'kcharts-publishing', 'title' => 'Publishing' ),
-			'archives'       => array( 'menu_slug' => 'kcharts-archives', 'title' => 'Archive Management' ),
-			'users'          => array( 'menu_slug' => 'kcharts-users', 'title' => 'Users and Roles' ),
-			'settings'       => array( 'menu_slug' => 'kcharts-settings', 'title' => 'Settings' ),
+			'dashboard'      => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Dashboard' ),
+			'charts'         => array( 'menu_slug' => 'kontentainment-charts-charts', 'title' => 'Charts Management' ),
+			'weekly-entries' => array( 'menu_slug' => 'kontentainment-charts-weeks', 'title' => 'Weekly Chart Entries' ),
+			'tracks'         => array( 'menu_slug' => 'kontentainment-charts-tracks', 'title' => 'Tracks Management' ),
+			'artists'        => array( 'menu_slug' => 'kontentainment-charts-artists', 'title' => 'Artists Management' ),
+			'albums'         => array( 'menu_slug' => 'kontentainment-charts-albums', 'title' => 'Albums Management' ),
+			'uploads'        => array( 'menu_slug' => 'kontentainment-charts-uploads', 'title' => 'Source Uploads' ),
+			'cleaning'       => array( 'menu_slug' => 'kontentainment-charts-cleaning', 'title' => 'Matching and Cleaning' ),
+			'scoring'        => array( 'menu_slug' => 'kontentainment-charts-scoring', 'title' => 'Scoring Rules' ),
+			'publishing'     => array( 'menu_slug' => 'kontentainment-charts-publishing', 'title' => 'Publishing' ),
+			'archives'       => array( 'menu_slug' => 'kontentainment-charts-archives', 'title' => 'Archive Management' ),
+			'users'          => array( 'menu_slug' => 'kontentainment-charts-users', 'title' => 'Users and Roles' ),
+			'settings'       => array( 'menu_slug' => 'kontentainment-charts-settings', 'title' => 'Settings' ),
 		);
 	}
 
@@ -38,13 +38,13 @@ class AMC_Admin_Data {
 	 */
 	public static function wp_admin_pages() {
 		return array(
-			'overview'       => array( 'menu_slug' => 'kcharts', 'title' => 'Overview' ),
-			'notifications'  => array( 'menu_slug' => 'kcharts-notifications', 'title' => 'Notifications' ),
-			'settings'       => array( 'menu_slug' => 'kcharts-settings', 'title' => 'Settings' ),
-			'tools'          => array( 'menu_slug' => 'kcharts-tools', 'title' => 'Tools' ),
-			'logs'           => array( 'menu_slug' => 'kcharts-logs', 'title' => 'Logs' ),
-			'permissions'    => array( 'menu_slug' => 'kcharts-permissions', 'title' => 'Permissions' ),
-			'open-dashboard' => array( 'menu_slug' => 'kcharts-open-dashboard', 'title' => 'Open Dashboard' ),
+			'overview'       => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Overview' ),
+			'notifications'  => array( 'menu_slug' => 'kontentainment-charts-notifications', 'title' => 'Notifications' ),
+			'settings'       => array( 'menu_slug' => 'kontentainment-charts-settings', 'title' => 'Settings' ),
+			'tools'          => array( 'menu_slug' => 'kontentainment-charts-tools', 'title' => 'Tools' ),
+			'logs'           => array( 'menu_slug' => 'kontentainment-charts-logs', 'title' => 'Logs' ),
+			'permissions'    => array( 'menu_slug' => 'kontentainment-charts-permissions', 'title' => 'Permissions' ),
+			'open-dashboard' => array( 'menu_slug' => 'kontentainment-charts-open-dashboard', 'title' => 'Open Dashboard' ),
 		);
 	}
 
@@ -332,19 +332,18 @@ class AMC_Admin_Data {
 	 * @return array
 	 */
 	public static function notifications() {
-		$notifications = AMC_Ingestion::notifications();
-		$notifications = is_array( $notifications ) ? array_reverse( $notifications ) : array();
+		$notifications = self::notification_center();
 
 		return array_values(
 			array_slice(
 				array_filter(
 					$notifications,
 					function ( $notification ) {
-						return empty( $notification['is_dismissed'] );
+						return 'Dismissed' !== $notification['status'];
 					}
 				),
 				0,
-				8
+				6
 			)
 		);
 	}
@@ -396,19 +395,51 @@ class AMC_Admin_Data {
 			)
 		);
 
-		return array_map(
+		$rows = array_map(
 			function ( $notification ) {
 				$context = ! empty( $notification['context'] ) && is_array( $notification['context'] ) ? $notification['context'] : array();
+				$group_count = ! empty( $notification['occurrence_count'] ) ? (int) $notification['occurrence_count'] : 1;
 				return array(
 					'id'         => ! empty( $notification['id'] ) ? $notification['id'] : '',
 					'severity'   => ! empty( $notification['type'] ) ? ucfirst( $notification['type'] ) : 'Info',
 					'message'    => ! empty( $notification['message'] ) ? $notification['message'] : '',
 					'status'     => ! empty( $notification['is_dismissed'] ) ? 'Dismissed' : ( ! empty( $notification['is_read'] ) ? 'Read' : 'Unread' ),
 					'created_at' => ! empty( $notification['created_at'] ) ? $notification['created_at'] : '',
+					'last_seen'  => ! empty( $notification['last_seen_at'] ) ? $notification['last_seen_at'] : ( ! empty( $notification['created_at'] ) ? $notification['created_at'] : '' ),
+					'count'      => $group_count,
 					'context'    => $context,
 				);
 			},
 			$rows
+		);
+
+		usort(
+			$rows,
+			function ( $a, $b ) {
+				return strcmp( $b['last_seen'], $a['last_seen'] );
+			}
+		);
+
+		return $rows;
+	}
+
+	/**
+	 * Public page quick links.
+	 *
+	 * @return array
+	 */
+	public static function public_page_links() {
+		return array(
+			array( 'label' => 'Home', 'url' => AMC_Data::route_url() ),
+			array( 'label' => 'Charts Index', 'url' => AMC_Data::route_url( 'charts' ) ),
+			array( 'label' => 'Top Artists', 'url' => AMC_Data::route_url( 'charts/top-artists' ) ),
+			array( 'label' => 'Top Tracks', 'url' => AMC_Data::route_url( 'charts/top-tracks' ) ),
+			array( 'label' => 'Top Albums', 'url' => AMC_Data::route_url( 'charts/top-albums' ) ),
+			array( 'label' => 'Hot 100 Tracks', 'url' => AMC_Data::route_url( 'charts/hot-100-tracks' ) ),
+			array( 'label' => 'Hot 100 Artists', 'url' => AMC_Data::route_url( 'charts/hot-100-artists' ) ),
+			array( 'label' => 'All Artists', 'url' => AMC_Data::route_url( 'artists' ) ),
+			array( 'label' => 'All Tracks', 'url' => AMC_Data::route_url( 'tracks' ) ),
+			array( 'label' => 'About Charts', 'url' => AMC_Data::route_url( 'about' ) ),
 		);
 	}
 
@@ -890,11 +921,25 @@ class AMC_Admin_Data {
 				if ( 'auto_created' === $row['status'] ) {
 					$confidence = 'Created automatically';
 				} elseif ( ! empty( $row['confidence_label'] ) ) {
-					$confidence = ( $row['confidence'] > 0 ? rtrim( rtrim( number_format( (float) $row['confidence'], 2, '.', '' ), '0' ), '.' ) . '% / ' : '' ) . ucwords( str_replace( '-', ' ', $row['confidence_label'] ) );
+					$confidence_value = (float) $row['confidence'];
+					$confidence = $confidence_value > 0 ? rtrim( rtrim( number_format( $confidence_value, 0, '.', '' ), '0' ), '.' ) . '% / ' . ucwords( str_replace( '-', ' ', $row['confidence_label'] ) ) : ucwords( str_replace( '-', ' ', $row['confidence_label'] ) );
 				} elseif ( (float) $row['confidence'] > 0 ) {
-					$confidence = rtrim( rtrim( number_format( (float) $row['confidence'], 2, '.', '' ), '0' ), '.' ) . '%';
+					$confidence = rtrim( rtrim( number_format( (float) $row['confidence'], 0, '.', '' ), '0' ), '.' ) . '%';
 				} else {
-					$confidence = 'Needs operator review';
+					$confidence = 'Needs review';
+				}
+
+				$recommended = 'Approve suggested match';
+				if ( 'auto_created' === $resolution ) {
+					$recommended = 'Continue to generation';
+				} elseif ( 'matched_existing' === $resolution ) {
+					$recommended = 'Continue to generation';
+				} elseif ( 'review_needed' === $row['status'] && (int) $row['candidate_entity_id'] > 0 ) {
+					$recommended = 'Review suggested match';
+				} elseif ( 'review_needed' === $row['status'] ) {
+					$recommended = 'Create or override carefully';
+				} elseif ( 'rejected' === $row['status'] ) {
+					$recommended = 'No further action';
 				}
 
 				return array(
@@ -903,13 +948,15 @@ class AMC_Admin_Data {
 					'type'       => ucfirst( $row['entity_type'] ),
 					'row_type'   => ucwords( $row_type ),
 					'confidence' => $confidence,
-					'basis'      => ! empty( $row['match_basis'] ) ? $row['match_basis'] : 'No clear basis recorded',
+					'basis'      => ! empty( $row['match_basis'] ) ? $row['match_basis'] : 'No reliable match signal was recorded',
 					'sources'    => $upload ? trim( AMC_Ingestion::platform_label( ! empty( $upload['source_platform'] ) ? $upload['source_platform'] : $upload['source_name'] ) . ' / ' . $upload['country'] . ' / ' . $upload['chart_week'] . ( $chart ? ' / ' . $chart['name'] : '' ), ' /' ) : 'Unknown source',
 					'status'     => ucwords( str_replace( '_', ' ', $row['status'] ) ),
 					'raw_status' => $row['status'],
 					'action_hint'=> ! empty( $row['action_hint'] ) ? $row['action_hint'] : 'Review this row before generation.',
+					'recommended_action' => $recommended,
 					'resolution' => $resolution,
-					'create_mode'=> 'auto_created' === $resolution ? trim( $auto_type . ' auto-created' ) : ( 'manual_override' === $resolution ? 'Manual override applied' : ( 'matched_existing' === $resolution ? 'Matched to existing entity' : 'Awaiting decision' ) ),
+					'create_mode'=> 'auto_created' === $resolution ? trim( $auto_type . ' created automatically' ) : ( 'manual_override' === $resolution ? 'Manually overridden' : ( 'matched_existing' === $resolution ? 'Matched to existing entity' : ( (int) $row['candidate_entity_id'] > 0 ? 'Possible existing match' : 'Possible new entity' ) ) ),
+					'candidate_link' => (int) $row['candidate_entity_id'] > 0 ? admin_url( 'admin.php?page=kontentainment-charts-' . $row['entity_type'] . 's&' . $row['entity_type'] . '_id=' . (int) $row['candidate_entity_id'] ) : '',
 					'queue'      => $row,
 				);
 			},

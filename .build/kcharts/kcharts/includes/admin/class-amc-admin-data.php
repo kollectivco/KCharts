@@ -15,7 +15,7 @@ class AMC_Admin_Data {
 	 */
 	public static function pages() {
 		return array(
-			'dashboard'      => array( 'menu_slug' => 'kcharts', 'title' => 'Dashboard' ),
+			'dashboard'      => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Dashboard' ),
 			'charts'         => array( 'menu_slug' => 'kcharts-charts', 'title' => 'Charts Management' ),
 			'weekly-entries' => array( 'menu_slug' => 'kcharts-weeks', 'title' => 'Weekly Chart Entries' ),
 			'tracks'         => array( 'menu_slug' => 'kcharts-tracks', 'title' => 'Tracks Management' ),
@@ -38,7 +38,7 @@ class AMC_Admin_Data {
 	 */
 	public static function wp_admin_pages() {
 		return array(
-			'overview'       => array( 'menu_slug' => 'kcharts', 'title' => 'Overview' ),
+			'overview'       => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Overview' ),
 			'notifications'  => array( 'menu_slug' => 'kcharts-notifications', 'title' => 'Notifications' ),
 			'settings'       => array( 'menu_slug' => 'kcharts-settings', 'title' => 'Settings' ),
 			'tools'          => array( 'menu_slug' => 'kcharts-tools', 'title' => 'Tools' ),

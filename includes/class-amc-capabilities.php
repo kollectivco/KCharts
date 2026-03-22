@@ -1,6 +1,6 @@
 <?php
 /**
- * Roles and capabilities for KCharts.
+ * Roles and capabilities for Kontentainment Charts.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

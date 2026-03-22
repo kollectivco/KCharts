@@ -80,7 +80,7 @@ class AMC_Admin {
 	 * @return void
 	 */
 	public static function enqueue_assets( $hook_suffix ) {
-		if ( false === strpos( $hook_suffix, 'kcharts' ) ) {
+		if ( false === strpos( $hook_suffix, 'kontentainment-charts' ) ) {
 			return;
 		}
 
@@ -88,14 +88,14 @@ class AMC_Admin {
 			'amc-admin',
 			AMC_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			AMC_PLUGIN_VERSION
+			filemtime( AMC_PLUGIN_DIR . 'assets/css/admin.css' )
 		);
 
 		wp_enqueue_script(
 			'amc-admin',
 			AMC_PLUGIN_URL . 'assets/js/admin.js',
-			array(),
-			AMC_PLUGIN_VERSION,
+			array( 'jquery' ),
+			filemtime( AMC_PLUGIN_DIR . 'assets/js/admin.js' ),
 			true
 		);
 	}
@@ -106,11 +106,12 @@ class AMC_Admin {
 	 * @return void
 	 */
 	public static function render_page() {
-		$slug       = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts';
+		$slug       = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts';
 		$admin_page = self::find_admin_page_by_slug( $slug );
 		$legacy     = self::find_legacy_page_by_slug( $slug );
 
-		echo '<div class="wrap amc-admin-wrap"><div class="amc-admin-shell" data-amc-theme="dark">';
+		echo '<div class="wrap amc-admin-wrap"><div class="amc-admin-shell" data-amc-theme="auto">';
+		echo '<script>(function(){try{var t=localStorage.getItem("kontentainmentChartsTheme")||"dark";document.querySelector(".amc-admin-shell").setAttribute("data-amc-theme",t);document.documentElement.setAttribute("data-amc-theme",t);}catch(e){}})();</script>';
 
 		if ( $admin_page ) {
 			self::render_wp_admin_shell( $admin_page['key'], $admin_page['page']['title'] );
@@ -134,14 +135,15 @@ class AMC_Admin {
 		}
 
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to access Kontentainment Charts dashboard.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to access Kontentainment Charts dashboard.', 'kontentainment-charts' ) );
 		}
 
 		$key      = self::get_dashboard_section_key();
 		$sections = AMC_Admin_Data::dashboard_sections();
 		$title    = $sections[ $key ]['title'];
 		?>
-		<div class="amc-custom-dashboard" data-amc-theme="dark">
+		<?php echo '<div class="amc-custom-dashboard" data-amc-theme="auto">'; ?>
+		<?php echo '<script>(function(){try{var t=localStorage.getItem("kontentainmentChartsTheme")||"dark";document.querySelector(".amc-custom-dashboard").setAttribute("data-amc-theme",t);document.documentElement.setAttribute("data-amc-theme",t);}catch(e){}})();</script>'; ?>
 			<div class="amc-custom-dashboard__sidebar">
 				<div class="amc-custom-dashboard__brand">
 					<span>KC</span>
@@ -158,7 +160,7 @@ class AMC_Admin {
 					<?php endforeach; ?>
 				</nav>
 				<div class="amc-custom-dashboard__sidebar-footer">
-					<a class="amc-custom-dashboard__utility" href="<?php echo esc_url( admin_url( 'admin.php?page=kcharts' ) ); ?>">Open wp-admin control layer</a>
+					<a class="amc-custom-dashboard__utility" href="<?php echo esc_url( admin_url( 'admin.php?page=kontentainment-charts' ) ); ?>">Open wp-admin control layer</a>
 				</div>
 			</div>
 			<div class="amc-custom-dashboard__main">
@@ -170,7 +172,7 @@ class AMC_Admin {
 					</div>
 					<div class="amc-admin-topbar__actions">
 						<?php self::render_theme_toggle(); ?>
-						<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kcharts-settings' ) ); ?>">wp-admin Settings</a>
+						<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kontentainment-charts-settings' ) ); ?>">wp-admin Settings</a>
 						<button type="button" class="button button-primary">New Working Draft</button>
 					</div>
 				</header>
@@ -288,7 +290,7 @@ class AMC_Admin {
 				</header>
 				<div class="amc-admin-button-row">
 					<a class="button button-primary" href="<?php echo esc_url( $target ); ?>">Open Dashboard Section</a>
-					<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kcharts' ) ); ?>">Back to Overview</a>
+					<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=kontentainment-charts' ) ); ?>">Back to Overview</a>
 				</div>
 			</section>
 		</div>
@@ -320,6 +322,7 @@ class AMC_Admin {
 			'Production setup checklist',
 			'This lightweight overview tracks first-run readiness while the full operational workflow continues inside /charts-dashboard.'
 		);
+		self::render_public_pages_panel( true );
 
 		echo '<section class="amc-admin-grid amc-admin-grid--split amc-admin-grid--bento">';
 		self::render_panel_start( 'Control layer shortcuts', 'Jump directly to the main dashboard workspace for operational sections.' );
@@ -417,7 +420,7 @@ class AMC_Admin {
 
 		self::render_panel_start( 'System logs', 'Operational diagnostics with filters for upload, source, country, chart, status, and date range.' );
 		echo '<form method="get" class="amc-admin-form">';
-		echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts-logs' ) . '">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts-logs' ) . '">';
 		self::field_input( 'Upload ID', 'log_upload_id', ! empty( $filters['upload_id'] ) ? (string) $filters['upload_id'] : '', 'number' );
 		self::field_select( 'Source', 'log_source_platform', $filters['source_platform'], array( '' => 'All sources' ) + self::source_platform_options() );
 		self::field_input( 'Country', 'log_country', $filters['country'] );
@@ -447,7 +450,7 @@ class AMC_Admin {
 		);
 		if ( ! empty( $priority_logs ) ) {
 			echo '<div class="amc-admin-definition-list">';
-			foreach ( array_slice( $priority_logs, 0, 8 ) as $row ) {
+			foreach ( array_slice( $priority_logs, 0, 20 ) as $row ) {
 				printf( '<div><strong>%1$s</strong><span>%2$s</span></div>', esc_html( strtoupper( $row['status'] ) . ' / ' . $row['time'] ), esc_html( $row['event'] ) );
 			}
 			echo '</div>';
@@ -489,14 +492,14 @@ class AMC_Admin {
 		echo '</div>';
 		echo '<form method="get" class="amc-admin-form">';
 		if ( $wp_admin ) {
-			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts-notifications' ) . '">';
+			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts-notifications' ) . '">';
 		}
 		self::field_select( 'Severity', 'notice_severity', $filters['severity'], array( '' => 'All severities', 'info' => 'Info', 'success' => 'Success', 'warning' => 'Warning', 'error' => 'Error' ) );
 		self::field_select( 'Status', 'notice_status', $filters['status'], array( '' => 'All statuses', 'unread' => 'Unread', 'read' => 'Read', 'dismissed' => 'Dismissed' ) );
 		self::field_input( 'Date', 'notice_date', $filters['date'], 'date' );
 		self::submit_row( array( array( 'label' => 'Filter notifications', 'class' => 'button-primary' ) ) );
 		echo '</form>';
-		$this_url = $wp_admin ? admin_url( 'admin.php?page=kcharts-notifications' ) : AMC_Admin_Data::custom_dashboard_url( 'notifications' );
+		$this_url = $wp_admin ? admin_url( 'admin.php?page=kontentainment-charts-notifications' ) : AMC_Admin_Data::custom_dashboard_url( 'notifications' );
 		echo '<div class="amc-admin-button-row">';
 		echo '<a class="button button-secondary" href="' . esc_url( $this_url ) . '">Reset filters</a>';
 		if ( $wp_admin ) {
@@ -504,6 +507,7 @@ class AMC_Admin {
 		}
 		echo '<a class="button button-secondary" href="' . esc_url( self::bulk_action_url( 'notification', 'read_filtered' ) ) . '">Mark all filtered read</a>';
 		echo '<a class="button button-secondary" href="' . esc_url( self::bulk_action_url( 'notification', 'dismiss_filtered' ) ) . '">Dismiss all filtered</a>';
+		echo '<a class="button button-secondary" href="' . esc_url( self::bulk_action_url( 'notification', 'clear_resolved' ) ) . '">Clear resolved</a>';
 		echo '</div>';
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( 'amc_bulk_action' );
@@ -511,12 +515,14 @@ class AMC_Admin {
 		echo '<input type="hidden" name="entity" value="notification">';
 		echo '<input type="hidden" name="redirect_to" value="' . esc_attr( self::current_url() ) . '">';
 		self::render_table(
-			array( '', 'Severity', 'Message', 'Status', 'Time', 'Actions' ),
+			array( '', 'Severity', 'Message', 'Status', 'Seen', 'Actions' ),
 			array_map(
 				function ( $row ) {
 					$actions = array();
 					if ( 'Unread' === $row['status'] ) {
 						$actions[] = '<a href="' . esc_url( self::action_url( 'notification', $row['id'], 'read' ) ) . '">Mark read</a>';
+					} else {
+						$actions[] = '<a href="' . esc_url( self::action_url( 'notification', $row['id'], 'unread' ) ) . '">Mark unread</a>';
 					}
 					if ( 'Dismissed' !== $row['status'] ) {
 						$actions[] = '<a href="' . esc_url( self::action_url( 'notification', $row['id'], 'dismiss' ) ) . '">Dismiss</a>';
@@ -534,17 +540,22 @@ class AMC_Admin {
 					if ( ! empty( $row['context']['job_id'] ) ) {
 						$link_bits[] = '<a href="' . esc_url( AMC_Admin_Data::custom_dashboard_url( 'jobs' ) ) . '">Job #' . (int) $row['context']['job_id'] . '</a>';
 					}
-					$message = esc_html( $row['message'] );
+					$message = '<div class="amc-admin-notice-copy"><strong>' . esc_html( $row['message'] ) . '</strong>';
+					if ( ! empty( $row['count'] ) && $row['count'] > 1 ) {
+						$message .= '<span class="amc-admin-inline-meta">Grouped ' . esc_html( (string) $row['count'] ) . ' times</span>';
+					}
 					if ( ! empty( $link_bits ) ) {
 						$message .= '<div class="amc-admin-inline-links">' . implode( ' / ', $link_bits ) . '</div>';
 					}
-					return array( array( 'value' => '<input type="checkbox" name="selected_ids[]" value="' . esc_attr( $row['id'] ) . '">', 'html' => true ), $row['severity'], array( 'value' => $message, 'html' => true ), $row['status'], $row['created_at'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
+					$message .= '</div>';
+					return array( array( 'value' => '<input type="checkbox" name="selected_ids[]" value="' . esc_attr( $row['id'] ) . '">', 'html' => true ), array( 'value' => self::badge_html( $row['severity'] ), 'html' => true ), array( 'value' => $message, 'html' => true ), $row['status'], $row['last_seen'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
 				},
 				$notifications
 			)
 		);
 		echo '<div class="amc-admin-button-row">';
 		echo '<button type="submit" class="button button-secondary" name="task" value="read_selected">Mark selected read</button>';
+		echo '<button type="submit" class="button button-secondary" name="task" value="unread_selected">Mark selected unread</button>';
 		echo '<button type="submit" class="button button-secondary" name="task" value="dismiss_selected">Dismiss selected</button>';
 		echo '</div>';
 		echo '</form>';
@@ -714,13 +725,14 @@ class AMC_Admin {
 		if ( ! empty( $notifications ) ) {
 			echo '<div class="amc-admin-alerts">';
 			foreach ( $notifications as $notification ) {
-				$tone = 'info';
-				if ( 'warning' === $notification['type'] ) {
-					$tone = 'warning';
-				} elseif ( 'error' === $notification['type'] ) {
+				$tone = strtolower( $notification['severity'] );
+				if ( 'error' === $tone ) {
 					$tone = 'danger';
 				}
-				echo '<section class="amc-admin-alert amc-admin-alert--' . esc_attr( $tone ) . '"><strong>' . esc_html( ucfirst( $notification['type'] ) ) . '</strong><p>' . esc_html( $notification['message'] ) . '</p></section>';
+				echo '<section class="amc-admin-alert amc-admin-alert--' . esc_attr( $tone ) . '">';
+				echo '<div class="amc-admin-alert__head"><strong>' . esc_html( $notification['severity'] ) . '</strong><span>' . esc_html( $notification['status'] ) . '</span></div>';
+				echo '<p>' . esc_html( $notification['message'] ) . '</p>';
+				echo '</section>';
 			}
 			echo '</div>';
 		}
@@ -778,6 +790,7 @@ class AMC_Admin {
 			'First live data workflow',
 			'Use this checklist to move from a clean production install to the first published chart week without demo content or hidden assumptions.'
 		);
+		self::render_public_pages_panel( false );
 
 		echo '<section class="amc-admin-grid amc-admin-grid--split amc-admin-grid--bento">';
 		self::render_panel_start( 'Recent uploads', 'Latest source sheets moving through the chart pipeline.' );
@@ -788,7 +801,7 @@ class AMC_Admin {
 			array( 'Source', 'Chart week', 'Status', 'Rows', 'Uploader' ),
 			array_map(
 				function ( $row ) {
-					return array( $row['source'], $row['chart_week'], $row['status'], (string) $row['rows'], $row['uploader'] );
+					return array( $row['source'], $row['chart_week'], array( 'value' => self::badge_html( $row['status'] ), 'html' => true ), (string) $row['rows'], $row['uploader'] );
 				},
 				$uploads
 			)
@@ -865,7 +878,7 @@ class AMC_Admin {
 		self::render_panel_start( 'Jobs and queue', 'Queue controls for retrying failures, cancelling queued tasks, rerunning safe completed tasks, and manually advancing queued work.' );
 		echo '<form method="get" class="amc-admin-form">';
 		if ( is_admin() ) {
-			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kcharts' ) . '">';
+			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts' ) . '">';
 		}
 		self::field_select( 'State', 'job_status', $filters['status'], array( '' => 'All states', 'queued' => 'Queued', 'running' => 'Running', 'completed' => 'Completed', 'failed' => 'Failed', 'cancelled' => 'Cancelled' ) );
 		self::field_select( 'Job type', 'job_type', $filters['job_type'], array( '' => 'All types', 'parse_upload' => 'Parse Upload', 'rerun_matching' => 'Rerun Matching', 'auto_create_processing' => 'Auto-create Processing', 'generate_chart' => 'Generate Chart', 'publish_checks' => 'Publish Checks', 'cleanup_diagnostics' => 'Cleanup Diagnostics' ) );
@@ -905,7 +918,7 @@ class AMC_Admin {
 					if ( ! empty( $row['last_error_step'] ) ) {
 						$retry_meta .= ' / ' . $row['last_error_step'];
 					}
-					return array( array( 'value' => '<input type="checkbox" name="selected_ids[]" value="' . esc_attr( $row['id'] ) . '">', 'html' => true ), $row['job_type'], $row['related'], $row['state'], $row['trigger_mode'], $row['created_time'], $row['started_time'], $row['finished_time'], $row['duration'], (string) $row['attempts'], $retry_meta, $row['failure_reason'] ? $row['failure_reason'] : 'None', array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
+					return array( array( 'value' => '<input type="checkbox" name="selected_ids[]" value="' . esc_attr( $row['id'] ) . '">', 'html' => true ), $row['job_type'], $row['related'], array( 'value' => self::badge_html( $row['state'] ), 'html' => true ), $row['trigger_mode'], $row['created_time'], $row['started_time'], $row['finished_time'], $row['duration'], (string) $row['attempts'], $retry_meta, $row['failure_reason'] ? $row['failure_reason'] : 'None', array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
 				},
 				$jobs
 			)
@@ -1133,7 +1146,7 @@ class AMC_Admin {
 							$row['week_date'],
 							! empty( $row['country'] ) ? $row['country'] : 'Global',
 							$chart ? $chart['name'] : 'Unknown',
-							ucfirst( $row['status'] ),
+							array( 'value' => self::badge_html( $row['status'] ), 'html' => true ),
 							! empty( $row['is_featured'] ) ? 'Yes' : 'No',
 							array( 'value' => implode( ' / ', $actions ), 'html' => true ),
 						);
@@ -1324,7 +1337,7 @@ class AMC_Admin {
 						'<a href="' . esc_url( self::action_url( 'artist', $row['id'], 'archived' === $row['raw_status'] ? 'restore' : 'archive' ) ) . '">' . esc_html( 'archived' === $row['raw_status'] ? 'Restore' : 'Archive' ) . '</a>',
 						'<a href="' . esc_url( self::action_url( 'artist', $row['id'], 'delete' ) ) . '">Delete</a>',
 					);
-					return array( $row['name'], $row['country'], $row['genre'], $row['socials'], (string) $row['related_tracks'], (string) $row['related_albums'], $row['status'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
+					return array( $row['name'], $row['country'], $row['genre'], $row['socials'], (string) $row['related_tracks'], (string) $row['related_albums'], array( 'value' => self::badge_html( $row['status'] ), 'html' => true ), array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
 				},
 				$artists
 			)
@@ -1388,7 +1401,7 @@ class AMC_Admin {
 						'<a href="' . esc_url( self::action_url( 'album', $row['id'], 'archived' === $row['raw_status'] ? 'restore' : 'archive' ) ) . '">' . esc_html( 'archived' === $row['raw_status'] ? 'Restore' : 'Archive' ) . '</a>',
 						'<a href="' . esc_url( self::action_url( 'album', $row['id'], 'delete' ) ) . '">Delete</a>',
 					);
-					return array( $row['title'], $row['artist'], $row['release_date'], (string) $row['tracks'], $row['genre'], $row['label'], $row['status'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
+					return array( $row['title'], $row['artist'], $row['release_date'], (string) $row['tracks'], $row['genre'], $row['label'], array( 'value' => self::badge_html( $row['status'] ), 'html' => true ), array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
 				},
 				$albums
 			)
@@ -1461,7 +1474,7 @@ class AMC_Admin {
 					if ( ! empty( $row['file_url'] ) ) {
 						$actions[] = '<a href="' . esc_url( $row['file_url'] ) . '" target="_blank" rel="noreferrer">File</a>';
 					}
-					return array( $row['source'], $row['country'], $row['chart'], $row['chart_type'], $row['upload_date'], $row['week'], $row['status'] . ( ! empty( $badges ) ? ' / ' . implode( ' / ', $badges ) : '' ), (string) $row['row_count'], $row['preview'], $row['uploader'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
+					return array( $row['source'], $row['country'], $row['chart'], $row['chart_type'], $row['upload_date'], $row['week'], array( 'value' => self::badge_html( $row['raw_status'] ) . ( ! empty( $badges ) ? ' <span class="amc-admin-inline-meta">' . implode( ' / ', $badges ) . '</span>' : '' ), 'html' => true ), (string) $row['row_count'], $row['preview'], $row['uploader'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
 				},
 				$uploads
 			)
@@ -1518,27 +1531,31 @@ class AMC_Admin {
 		$override    = $override_id ? AMC_DB::get_row( 'matching_queue', $override_id ) : null;
 		self::render_workflow_strip( 'cleaning' );
 		echo '<section class="amc-admin-grid amc-admin-grid--split amc-admin-grid--bento">';
-		self::render_panel_start( 'Matching and Cleaning queue', 'Each row below is a parsed source row with a real pipeline state: matched automatically, ready to create, possible duplicate, or unmatched review.' );
+		self::render_panel_start( 'Matching and Cleaning queue', 'This queue only keeps uncertain rows that were not resolved safely by automatic matching or automatic creation.' );
 		if ( empty( $candidates ) ) {
 			echo '<p>No review-needed matches are waiting right now. When ambiguous rows arrive from uploads, they will appear here for manual review before generation.</p>';
 		}
 		self::render_table(
-			array( 'Candidate', 'Row type', 'Type', 'Confidence', 'Why it is here', 'Creation behavior', 'Next step', 'Actions' ),
+			array( 'Candidate', 'State', 'Type', 'Confidence', 'Why it needs attention', 'What the system did', 'Recommended next action', 'Actions' ),
 			array_map(
 				function ( $row ) {
 					$actions = array(
-						'<a href="' . esc_url( self::action_url( 'matching', $row['id'], 'approve' ) ) . '">Approve match</a>',
-						'<a href="' . esc_url( self::action_url( 'matching', $row['id'], 'reject' ) ) . '">Reject row</a>',
-						'<a href="' . esc_url( add_query_arg( 'queue_id', $row['id'], self::current_url() ) ) . '">Override target</a>',
+						'<a href="' . esc_url( self::action_url( 'matching', $row['id'], 'approve' ) ) . '">Use suggested match</a>',
+						'<a href="' . esc_url( self::action_url( 'matching', $row['id'], 'reject' ) ) . '">Reject this row</a>',
+						'<a href="' . esc_url( add_query_arg( 'queue_id', $row['id'], self::current_url() ) ) . '">Choose different target</a>',
 					);
+					$candidate_display = $row['candidate'];
+					if ( ! empty( $row['candidate_link'] ) ) {
+						$candidate_display = '<a href="' . esc_url( $row['candidate_link'] ) . '" target="_blank">' . esc_html( $row['candidate'] ) . '</a>';
+					}
 					return array(
-						$row['candidate'],
+						array( 'value' => $candidate_display, 'html' => true ),
 						array( 'value' => self::badge_html( $row['row_type'] ), 'html' => true ),
 						$row['type'],
 						$row['confidence'],
 						$row['basis'],
 						$row['create_mode'],
-						$row['action_hint'],
+						$row['recommended_action'] . ' / ' . $row['action_hint'],
 						array( 'value' => implode( ' / ', $actions ), 'html' => true ),
 					);
 				},
@@ -1547,12 +1564,12 @@ class AMC_Admin {
 		);
 		echo '<div class="amc-admin-button-row"><a class="button button-secondary" href="' . esc_url( self::action_url( 'export', 0, 'matching_queue' ) ) . '">Export matching review queue</a></div>';
 		self::render_panel_end();
-		self::render_panel_start( 'Decision guide', 'Approve confirms the suggested match, Reject removes the row from generation, and Override manually links the row to a specific Track, Artist, or Album.' );
-		echo '<div class="amc-admin-definition-list">';
-		echo '<div><strong>Matched automatically</strong><span>The system linked the row to an existing entity with exact or high-confidence evidence.</span></div>';
-		echo '<div><strong>Ready to create</strong><span>The row was valid, unmatched, and safe, so the system created a new entity automatically.</span></div>';
-		echo '<div><strong>Possible duplicate</strong><span>A likely entity exists, but the confidence basis was not strong enough for an automatic decision.</span></div>';
-		echo '<div><strong>Unmatched</strong><span>No safe match or auto-create path was available, so the operator must review or override.</span></div>';
+		self::render_panel_start( 'Decision guide', 'Most rows are handled automatically. This screen is for the small set of rows where the system needs a safe operator decision.' );
+		echo '<div class="amc-admin-grid amc-admin-grid--cards">';
+		echo '<div class="amc-admin-card"><span>Match</span><strong>Auto</strong><p> EVIDENCE WAS STRONG. LINKED TO EXISTING RECORD.</p></div>';
+		echo '<div class="amc-admin-card"><span>Entity</span><strong>Created</strong><p>ROW WAS NEW AND UNAMBIGUOUS. RECORD FORMED.</p></div>';
+		echo '<div class="amc-admin-card"><span>Review</span><strong>Needed</strong><p>TARGET FOUND BUT REQUIRES MANUAL VERIFICATION.</p></div>';
+		echo '<div class="amc-admin-card"><span>Action</span><strong>Rejected</strong><p>INVALID OR UNSAFE. REMOVED FROM WORKFLOW.</p></div>';
 		echo '</div>';
 		self::render_panel_end();
 		self::render_panel_start( 'Manual override tools', 'Manual override decisions now persist to the matching queue and source row records, and they are recorded as manual overrides in the pipeline state.' );
@@ -1708,7 +1725,7 @@ class AMC_Admin {
 						'<a href="' . esc_url( add_query_arg( 'week_id', $row['id'], AMC_Admin_Data::custom_dashboard_url( 'weekly-entries' ) ) ) . '">Open week</a>',
 						'<a href="' . esc_url( self::action_url( 'week', $row['id'], 'Archived' === $row['status'] ? 'restore' : 'archive' ) ) . '">' . esc_html( 'Archived' === $row['status'] ? 'Restore' : 'Archive' ) . '</a>',
 					);
-					return array( $row['week'], $row['chart'], $row['status'], $row['notes'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
+					return array( $row['week'], $row['chart'], array( 'value' => self::badge_html( $row['status'] ), 'html' => true ), $row['notes'], array( 'value' => implode( ' / ', $actions ), 'html' => true ) );
 				},
 				$archives
 			)
@@ -1790,13 +1807,12 @@ class AMC_Admin {
 	 */
 	private static function render_workflow_strip( $current = '' ) {
 		$steps = array(
-			'uploads'        => 'Upload file',
-			'parse'          => 'Parse',
-			'validate'       => 'Validate',
-			'cleaning'       => 'Match or auto-create',
-			'weekly-entries' => 'Generate chart',
+			'uploads'        => 'Ingestion',
+			'cleaning'       => 'Correction',
+			'scoring'        => 'Scoring',
+			'weekly-entries' => 'Generation',
 			'review'         => 'Review',
-			'publishing'     => 'Publish',
+			'publishing'     => 'Live Deployment',
 		);
 
 		echo '<section class="amc-admin-workflow"><div class="amc-admin-workflow__grid">';
@@ -1814,8 +1830,25 @@ class AMC_Admin {
 	 * @return string
 	 */
 	private static function badge_html( $label ) {
-		$slug = sanitize_title( $label );
-		return '<span class="amc-admin-badge amc-admin-badge--' . esc_attr( $slug ) . '">' . esc_html( $label ) . '</span>';
+		$label = trim( (string) $label );
+		$slug  = sanitize_title( $label );
+		
+		// Map common labels to base slugs for CSS consistency
+		$map = array(
+			'draft'     => 'review-needed',
+			'published' => 'ready-to-create',
+			'active'    => 'ready-to-create',
+			'hidden'    => 'unmatched',
+			'archived'  => 'unmatched',
+			'error'     => 'unmatched',
+			'warning'   => 'review-needed',
+			'success'   => 'ready-to-create',
+			'info'      => 'matched',
+		);
+
+		$final_slug = isset( $map[ $slug ] ) ? $map[ $slug ] : $slug;
+
+		return '<span class="amc-admin-badge amc-admin-badge--' . esc_attr( $final_slug ) . '">' . esc_html( $label ) . '</span>';
 	}
 
 	/**
@@ -1858,6 +1891,21 @@ class AMC_Admin {
 			echo '<a class="button button-secondary" href="' . esc_url( AMC_Admin_Data::custom_dashboard_url( 'uploads' ) ) . '">Go to uploads</a>';
 			echo '<a class="button button-secondary" href="' . esc_url( AMC_Admin_Data::custom_dashboard_url( 'publishing' ) ) . '">Open publishing</a>';
 			echo '</div>';
+		}
+		self::render_panel_end();
+	}
+
+	private static function render_public_pages_panel( $wp_admin ) {
+		$links = AMC_Admin_Data::public_page_links();
+
+		self::render_panel_start( 'Public Pages', 'Open the live user-facing pages directly from the operator workspace.' );
+		echo '<div class="amc-admin-button-row">';
+		foreach ( $links as $link ) {
+			echo '<a class="button button-secondary" href="' . esc_url( $link['url'] ) . '" target="_blank" rel="noreferrer">' . esc_html( $link['label'] ) . '</a>';
+		}
+		echo '</div>';
+		if ( $wp_admin ) {
+			echo '<p>These links make it easy to review the public site without leaving wp-admin.</p>';
 		}
 		self::render_panel_end();
 	}
@@ -2228,7 +2276,7 @@ class AMC_Admin {
 	 */
 	public static function handle_save_entity() {
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to save Kontentainment Charts data.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to save Kontentainment Charts data.', 'kontentainment-charts' ) );
 		}
 
 		check_admin_referer( 'amc_save_entity' );
@@ -2404,7 +2452,7 @@ class AMC_Admin {
 	 */
 	public static function handle_row_action() {
 		if ( ! current_user_can( 'amc_view_dashboard' ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage Kontentainment Charts records.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to manage Kontentainment Charts records.', 'kontentainment-charts' ) );
 		}
 
 		check_admin_referer( 'amc_row_action' );
@@ -2610,6 +2658,8 @@ class AMC_Admin {
 
 			if ( 'read' === $task ) {
 				$result = AMC_Ingestion::mark_notification_read( $raw_id );
+			} elseif ( 'unread' === $task ) {
+				$result = AMC_Ingestion::mark_notification_unread( $raw_id );
 			} elseif ( 'dismiss' === $task ) {
 				$result = AMC_Ingestion::dismiss_notification( $raw_id );
 			}
@@ -2642,12 +2692,16 @@ class AMC_Admin {
 		if ( 'notification' === $entity ) {
 			if ( 'read_selected' === $task ) {
 				$result = AMC_Ingestion::mark_notifications_read( array( 'ids' => $selected ) );
+			} elseif ( 'unread_selected' === $task ) {
+				$result = AMC_Ingestion::mark_notifications_unread( array( 'ids' => $selected ) );
 			} elseif ( 'dismiss_selected' === $task ) {
 				$result = AMC_Ingestion::dismiss_notifications( array( 'ids' => $selected ) );
 			} elseif ( 'read_filtered' === $task ) {
 				$result = AMC_Ingestion::mark_notifications_read( AMC_Admin_Data::notification_filters_from_request() );
 			} elseif ( 'dismiss_filtered' === $task ) {
 				$result = AMC_Ingestion::dismiss_notifications( AMC_Admin_Data::notification_filters_from_request() );
+			} elseif ( 'clear_resolved' === $task ) {
+				$result = AMC_Ingestion::clear_resolved_notifications( AMC_Admin_Data::notification_filters_from_request() );
 			} else {
 				$result = array( 'success' => false, 'message' => 'Unsupported notification bulk action.' );
 			}
@@ -2701,7 +2755,7 @@ class AMC_Admin {
 	 */
 	private static function export_debug_csv( $task, $id ) {
 		$rows     = array();
-		$filename = 'kcharts-export.csv';
+		$filename = 'kontentainment-charts-export.csv';
 
 		if ( 'logs' === $task ) {
 			$filters = array();
@@ -2709,17 +2763,17 @@ class AMC_Admin {
 				$filters['upload_id'] = $id;
 			}
 			$rows     = AMC_Admin_Data::logs( $filters );
-			$filename = $id > 0 ? 'kcharts-upload-' . $id . '-logs.csv' : 'kcharts-logs.csv';
+			$filename = $id > 0 ? 'kontentainment-charts-upload-' . $id . '-logs.csv' : 'kontentainment-charts-logs.csv';
 		} elseif ( 'invalid_rows' === $task ) {
 			$rows     = AMC_Ingestion::invalid_rows( $id, 500 );
-			$filename = 'kcharts-upload-' . $id . '-invalid-rows.csv';
+			$filename = 'kontentainment-charts-upload-' . $id . '-invalid-rows.csv';
 		} elseif ( 'dropped_out' === $task ) {
 			$week     = AMC_DB::get_row( 'chart_weeks', $id );
 			$rows     = $week && ! empty( $week['dropped_out_json'] ) ? json_decode( $week['dropped_out_json'], true ) : array();
-			$filename = 'kcharts-week-' . $id . '-dropped-out.csv';
+			$filename = 'kontentainment-charts-week-' . $id . '-dropped-out.csv';
 		} elseif ( 'matching_queue' === $task ) {
 			$rows     = AMC_Admin_Data::matching_candidates();
-			$filename = 'kcharts-matching-queue.csv';
+			$filename = 'kontentainment-charts-matching-queue.csv';
 		}
 
 		if ( empty( $rows ) ) {
@@ -2796,7 +2850,7 @@ class AMC_Admin {
 	 */
 	private static function assert_cap( $cap ) {
 		if ( ! current_user_can( $cap ) ) {
-			wp_die( esc_html__( 'You do not have permission to perform this action.', 'kcharts' ) );
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'kontentainment-charts' ) );
 		}
 	}
 
@@ -2808,7 +2862,7 @@ class AMC_Admin {
 	private static function posted_redirect() {
 		$redirect = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : wp_get_referer();
 
-		return $redirect ? $redirect : admin_url( 'admin.php?page=kcharts' );
+		return $redirect ? $redirect : admin_url( 'admin.php?page=kontentainment-charts' );
 	}
 
 	/**

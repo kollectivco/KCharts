@@ -39,13 +39,13 @@ Features:
 
 
 = 4.3.3 =
-* Renamed the standalone install identity to use the `kcharts/` plugin folder, `kcharts.php` main file, `kcharts` slug, `kcharts` text domain, and `kcharts.zip` package while preserving the Kontentainment Charts brand in the UI.
+* Renamed the standalone install identity to use the `kontentainment-charts/` plugin folder, `kontentainment-charts.php` main file, `kontentainment-charts` slug, `kontentainment-charts` text domain, and `kontentainment-charts.zip` package while preserving the Kontentainment Charts brand in the UI.
 
 = 4.3.2 =
-* Hardened plugin packaging so the install ZIP is built from an explicit allowlist, verified automatically, and contains only the `kcharts/` root with `kcharts.php` as the sole plugin entrypoint.
+* Hardened plugin packaging so the install ZIP is built from an explicit allowlist, verified automatically, and contains only the `kontentainment-charts/` root with `kontentainment-charts.php` as the sole plugin entrypoint.
 
 = 4.3.1 =
-* Fixed plugin identity and packaging so the plugin installs as its own standalone package with the `kcharts` folder, `kcharts.php` main file, and a packaged ZIP rooted at `kcharts/`.
+* Fixed plugin identity and packaging so the plugin installs as its own standalone package with the `kontentainment-charts` folder, `kontentainment-charts.php` main file, and a packaged ZIP rooted at `kontentainment-charts/`.
 
 = 4.3.0 =
 * Added retry/backoff metadata, bulk queue and notification actions, external email/webhook alerts, richer notification linking, and deeper job history analytics for operational monitoring.
