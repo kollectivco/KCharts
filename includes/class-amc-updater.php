@@ -1,0 +1,355 @@
+<?php
+/**
+ * GitHub-powered plugin updater.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class AMC_Updater {
+	/**
+	 * GitHub repository.
+	 */
+	const REPO = 'kollectivco/kontent';
+
+	/**
+	 * Packaged ZIP file name.
+	 */
+	const PACKAGE_FILE = 'kcharts.zip';
+
+	/**
+	 * Bootstrap hooks.
+	 *
+	 * @return void
+	 */
+	public static function boot() {
+		add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'inject_update' ) );
+		add_filter( 'plugins_api', array( __CLASS__, 'plugin_info' ), 20, 3 );
+		add_filter( 'upgrader_post_install', array( __CLASS__, 'after_install' ), 10, 3 );
+		add_filter( 'plugin_row_meta', array( __CLASS__, 'plugin_row_meta' ), 10, 4 );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_force_check' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'render_plugins_notice' ) );
+	}
+
+	/**
+	 * Add update data from GitHub release/tag metadata.
+	 *
+	 * @param object $transient Update transient.
+	 * @return object
+	 */
+	public static function inject_update( $transient ) {
+		if ( empty( $transient->checked ) || ! is_object( $transient ) ) {
+			return $transient;
+		}
+
+		$plugin_basename = plugin_basename( AMC_PLUGIN_FILE );
+		$plugin_data     = get_plugin_data( AMC_PLUGIN_FILE, false, false );
+		$release         = self::get_latest_release();
+
+		if ( empty( $release['version'] ) || version_compare( $release['version'], $plugin_data['Version'], '<=' ) ) {
+			return $transient;
+		}
+
+		$transient->response[ $plugin_basename ] = (object) array(
+			'slug'        => AMC_PLUGIN_SLUG,
+			'plugin'      => $plugin_basename,
+			'new_version' => $release['version'],
+			'url'         => 'https://github.com/' . self::REPO,
+			'package'     => $release['package'],
+			'tested'      => isset( $release['tested'] ) ? $release['tested'] : '',
+			'requires'    => isset( $release['requires'] ) ? $release['requires'] : '',
+			'icons'       => array(),
+			'banners'     => array(),
+		);
+
+		return $transient;
+	}
+
+	/**
+	 * Supply modal details for plugin info.
+	 *
+	 * @param false|object|array $result Existing result.
+	 * @param string             $action API action.
+	 * @param object             $args API args.
+	 * @return false|object|array
+	 */
+	public static function plugin_info( $result, $action, $args ) {
+		if ( 'plugin_information' !== $action || empty( $args->slug ) ) {
+			return $result;
+		}
+
+		$plugin_basename = plugin_basename( AMC_PLUGIN_FILE );
+		$plugin_slug     = AMC_PLUGIN_SLUG;
+
+		if ( $args->slug !== $plugin_slug ) {
+			return $result;
+		}
+
+		$plugin_data = get_plugin_data( AMC_PLUGIN_FILE, false, false );
+		$release     = self::get_latest_release();
+
+		return (object) array(
+			'name'          => $plugin_data['Name'],
+			'slug'          => $plugin_slug,
+			'version'       => ! empty( $release['version'] ) ? $release['version'] : $plugin_data['Version'],
+			'author'        => '<a href="https://github.com/kollectivco">kollectivco</a>',
+			'homepage'      => 'https://github.com/' . self::REPO,
+			'requires'      => ! empty( $release['requires'] ) ? $release['requires'] : '6.0',
+			'tested'        => ! empty( $release['tested'] ) ? $release['tested'] : '',
+			'download_link' => ! empty( $release['package'] ) ? $release['package'] : '',
+			'sections'      => array(
+				'description' => '<p>Kontentainment Charts is a chart publishing plugin with premium public pages and a plugin-owned control center.</p>',
+				'changelog'   => '<p>' . esc_html( ! empty( $release['body'] ) ? $release['body'] : 'See GitHub releases for change history.' ) . '</p>',
+			),
+		);
+	}
+
+	/**
+	 * Keep plugin active path stable after GitHub zip extraction.
+	 *
+	 * @param bool  $response Install response.
+	 * @param array $hook_extra Hook data.
+	 * @param array $result Install result.
+	 * @return array
+	 */
+	public static function after_install( $response, $hook_extra, $result ) {
+		if ( empty( $hook_extra['plugin'] ) || plugin_basename( AMC_PLUGIN_FILE ) !== $hook_extra['plugin'] ) {
+			return $result;
+		}
+
+		global $wp_filesystem;
+
+		$target = WP_PLUGIN_DIR . '/' . AMC_PLUGIN_SLUG;
+
+		if ( ! empty( $result['destination'] ) && ! empty( $wp_filesystem ) ) {
+			$wp_filesystem->move( $result['destination'], $target, true );
+			$result['destination'] = $target;
+		}
+
+		if ( is_plugin_active( plugin_basename( AMC_PLUGIN_FILE ) ) ) {
+			activate_plugin( plugin_basename( AMC_PLUGIN_FILE ) );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Add plugin row meta links on the plugins screen.
+	 *
+	 * @param array  $links Existing links.
+	 * @param string $file Plugin file.
+	 * @param array  $data Plugin data.
+	 * @param string $status Status.
+	 * @return array
+	 */
+	public static function plugin_row_meta( $links, $file, $data, $status ) {
+		unset( $data, $status );
+
+		if ( plugin_basename( AMC_PLUGIN_FILE ) !== $file ) {
+			return $links;
+		}
+
+		$links[] = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( self::check_updates_url() ),
+			esc_html__( 'Check for updates', 'kcharts' )
+		);
+
+		return $links;
+	}
+
+	/**
+	 * Force refresh plugin update data on demand.
+	 *
+	 * @return void
+	 */
+	public static function maybe_force_check() {
+		if ( ! is_admin() || ! current_user_can( 'update_plugins' ) ) {
+			return;
+		}
+
+		$plugin = isset( $_GET['amc_check_updates'] ) ? sanitize_text_field( wp_unslash( $_GET['amc_check_updates'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		if ( plugin_basename( AMC_PLUGIN_FILE ) !== $plugin ) {
+			return;
+		}
+
+		check_admin_referer( 'amc_check_updates' );
+
+		self::clear_update_cache();
+		wp_clean_plugins_cache( true );
+		wp_update_plugins();
+
+		$redirect = add_query_arg(
+			array(
+				'amc_notice_type' => 'success',
+				'amc_notice'      => 'Plugin updates were checked against GitHub.',
+			),
+			admin_url( 'plugins.php' )
+		);
+
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Render a notice on the plugins screen after a manual check.
+	 *
+	 * @return void
+	 */
+	public static function render_plugins_notice() {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+		if ( ! $screen || 'plugins' !== $screen->id ) {
+			return;
+		}
+
+		$type    = isset( $_GET['amc_notice_type'] ) ? sanitize_key( wp_unslash( $_GET['amc_notice_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$message = isset( $_GET['amc_notice'] ) ? sanitize_text_field( wp_unslash( $_GET['amc_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		if ( ! $type || ! $message ) {
+			return;
+		}
+
+		$class = 'notice notice-info';
+
+		if ( 'error' === $type ) {
+			$class = 'notice notice-error';
+		} elseif ( 'success' === $type ) {
+			$class = 'notice notice-success';
+		} elseif ( 'warning' === $type ) {
+			$class = 'notice notice-warning';
+		}
+
+		printf( '<div class="%1$s is-dismissible"><p>%2$s</p></div>', esc_attr( $class ), esc_html( $message ) );
+	}
+
+	/**
+	 * Clear cached update data.
+	 *
+	 * @return void
+	 */
+	public static function clear_update_cache() {
+		delete_site_transient( 'amc_github_release_data' );
+		delete_transient( 'amc_github_release_data' );
+		delete_site_transient( 'update_plugins' );
+		delete_transient( 'update_plugins' );
+	}
+
+	/**
+	 * Get a signed URL for manual update checks.
+	 *
+	 * @return string
+	 */
+	public static function check_updates_url() {
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'amc_check_updates' => plugin_basename( AMC_PLUGIN_FILE ),
+				),
+				admin_url( 'plugins.php' )
+			),
+			'amc_check_updates'
+		);
+	}
+
+	/**
+	 * Fetch latest release or tag.
+	 *
+	 * @return array
+	 */
+	private static function get_latest_release() {
+		$cache_key = 'amc_github_release_data';
+		$cached    = get_site_transient( $cache_key );
+
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$headers = array(
+			'Accept'     => 'application/vnd.github+json',
+			'User-Agent' => 'Kontentainment-Charts-Plugin',
+		);
+
+		$response = wp_remote_get( 'https://api.github.com/repos/' . self::REPO . '/releases/latest', array( 'headers' => $headers, 'timeout' => 15 ) );
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			$response = wp_remote_get( 'https://api.github.com/repos/' . self::REPO . '/tags', array( 'headers' => $headers, 'timeout' => 15 ) );
+
+			if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+				return array();
+			}
+
+			$tags = json_decode( wp_remote_retrieve_body( $response ), true );
+			$tag  = ! empty( $tags[0]['name'] ) ? $tags[0]['name'] : '';
+
+			$data = array(
+				'version' => ltrim( $tag, 'v' ),
+				'package' => self::package_url_for_tag( $tag ),
+				'body'    => 'Tagged release from GitHub.',
+			);
+
+			set_site_transient( $cache_key, $data, 6 * HOUR_IN_SECONDS );
+			return $data;
+		}
+
+		$release = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( empty( $release['tag_name'] ) ) {
+			return array();
+		}
+
+		$data = array(
+			'version'  => ltrim( $release['tag_name'], 'v' ),
+			'package'  => self::release_package_url( $release ),
+			'body'     => ! empty( $release['body'] ) ? wp_strip_all_tags( $release['body'] ) : '',
+			'requires' => '6.0',
+			'tested'   => get_bloginfo( 'version' ),
+		);
+
+		set_site_transient( $cache_key, $data, 6 * HOUR_IN_SECONDS );
+
+		return $data;
+	}
+
+	/**
+	 * Resolve packaged zip URL for a tag.
+	 *
+	 * @param string $tag Tag name.
+	 * @return string
+	 */
+	private static function package_url_for_tag( $tag ) {
+		return 'https://raw.githubusercontent.com/' . self::REPO . '/' . rawurlencode( $tag ) . '/dist/' . self::PACKAGE_FILE;
+	}
+
+	/**
+	 * Resolve release package URL.
+	 *
+	 * @param array $release Release payload.
+	 * @return string
+	 */
+	private static function release_package_url( $release ) {
+		if ( ! empty( $release['assets'] ) && is_array( $release['assets'] ) ) {
+			foreach ( $release['assets'] as $asset ) {
+				if ( empty( $asset['name'] ) || self::PACKAGE_FILE !== $asset['name'] ) {
+					continue;
+				}
+
+				if ( ! empty( $asset['browser_download_url'] ) ) {
+					return $asset['browser_download_url'];
+				}
+			}
+		}
+
+		if ( ! empty( $release['tag_name'] ) ) {
+			return self::package_url_for_tag( $release['tag_name'] );
+		}
+
+		return '';
+	}
+}
