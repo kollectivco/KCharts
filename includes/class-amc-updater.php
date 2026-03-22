@@ -11,7 +11,7 @@ class AMC_Updater {
 	/**
 	 * GitHub repository.
 	 */
-	const REPO = 'kollectivco/kontent';
+	const REPO = 'kollectivco/KCharts';
 
 	/**
 	 * Packaged ZIP file name.
