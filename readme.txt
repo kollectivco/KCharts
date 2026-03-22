@@ -3,7 +3,7 @@ Contributors: kollectivco
 Tags: music, charts, artists, tracks, albums
 Requires at least: 6.0
 Tested up to: 6.5
-Stable tag: 4.3.3
+Stable tag: 4.3.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,14 @@ Features:
 3. Visit Settings > Permalinks once or reactivate the plugin to refresh routes.
 
 == Changelog ==
+
+= 4.3.5 =
+* UI/UX monochrome overhaul, improved matching table resolution views, smarter notification memory, and more consistent badge reporting logic safely formatted through the pipeline.
+* Cache-busting optimizations for enqueued scripts/styles during development workflows.
+
+= 4.3.4 =
+* Performance tweaks and PHP syntactical corrections.
+
 
 = 4.3.3 =
 * Renamed the standalone install identity to use the `kcharts/` plugin folder, `kcharts.php` main file, `kcharts` slug, `kcharts` text domain, and `kcharts.zip` package while preserving the Kontentainment Charts brand in the UI.
