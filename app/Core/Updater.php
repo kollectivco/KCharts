@@ -3,29 +3,54 @@ namespace Kontentainment\Charts\Core;
 
 class Updater {
 
-    protected $update_checker;
+    /**
+     * @var \YahnisElsts\PluginUpdateChecker\v5\Vcs\PluginUpdateChecker|null
+     */
+    private $update_checker = null;
 
     public function init() {
-        if ( ! file_exists( KC_DIR . 'includes/plugin-update-checker/plugin-update-checker.php' ) ) {
+        $library_file = KC_DIR . 'includes/plugin-update-checker/plugin-update-checker.php';
+
+        if ( ! file_exists( $library_file ) ) {
+            error_log('KCharts: Plugin Update Checker library missing at ' . $library_file);
             return;
         }
 
-        require KC_DIR . 'includes/plugin-update-checker/plugin-update-checker.php';
-        
-        $this->update_checker = \Puc_v4_Factory::buildUpdateChecker(
-            'https://github.com/kollectivco/KCharts/',
-            KC_FILE,
-            'kontentainment-charts'
-        );
+        try {
+            require_once $library_file;
 
-        // Optional: If the repository is private, you can set an access token.
-        // $this->update_checker->setAuthentication('your-token-here');
+            // Use the v5 factory as requested
+            if ( ! class_exists( 'YahnisElsts\PluginUpdateChecker\v5\PucFactory' ) ) {
+                error_log('KCharts: PucFactory v5 class not found.');
+                return;
+            }
 
-        // Set the branch to check (default is master/main)
-        $this->update_checker->setBranch('main');
-        
-        // Add manual check action
-        add_action( 'wp_ajax_kc_check_updates', [ $this, 'handle_manual_check' ] );
+            $this->update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+                'https://github.com/kollectivco/KCharts/',
+                KC_FILE,
+                'kontentainment-charts'
+            );
+
+            if ( $this->update_checker ) {
+                // Set the branch to check (default is master/main)
+                $this->update_checker->setBranch('main');
+
+                // Enable release assets if available (checks for .zip files in releases)
+                if ( method_exists($this->update_checker, 'getVcsApi') ) {
+                    $vcs_api = $this->update_checker->getVcsApi();
+                    if ($vcs_api && method_exists($vcs_api, 'enableReleaseAssets')) {
+                        $vcs_api->enableReleaseAssets('/\.zip($|[?&#])/i');
+                    }
+                }
+                
+                // Add manual check action
+                add_action( 'wp_ajax_kc_check_updates', [ $this, 'handle_manual_check' ] );
+            }
+
+        } catch ( \Exception $e ) {
+            error_log( 'KCharts: Updater initialization failed: ' . $e->getMessage() );
+            $this->update_checker = null;
+        }
     }
 
     public function handle_manual_check() {
@@ -36,33 +61,42 @@ class Updater {
         }
 
         if ( ! $this->update_checker ) {
-            wp_send_json_error( [ 'message' => 'Updater not initialized.' ] );
+            wp_send_json_error( [ 'message' => 'Updater not initialized or library missing.' ] );
         }
 
-        $update = $this->update_checker->requestUpdate();
-        
-        if ( $update ) {
-            wp_send_json_success([
-                'update_available' => true,
-                'version' => $update->version,
-                'message' => sprintf( 'New version %s is available!', $update->version )
-            ]);
-        } else {
-            wp_send_json_success([
-                'update_available' => false,
-                'message' => 'You are running the latest version.'
-            ]);
+        try {
+            $update = $this->update_checker->requestUpdate();
+            
+            if ( $update ) {
+                wp_send_json_success([
+                    'update_available' => true,
+                    'version' => $update->version,
+                    'message' => sprintf( 'New version %s is available!', $update->version )
+                ]);
+            } else {
+                wp_send_json_success([
+                    'update_available' => false,
+                    'message' => 'You are running the latest version.'
+                ]);
+            }
+        } catch ( \Exception $e ) {
+            wp_send_json_error( [ 'message' => 'Update check failed: ' . $e->getMessage() ] );
         }
     }
 
     public function get_status() {
         if ( ! $this->update_checker ) {
-            return [ 'status' => 'Not initialized' ];
+            return [ 
+                'status' => 'Not initialized',
+                'last_check' => 'N/A',
+                'version_installed' => KC_VERSION,
+                'update_available' => false
+            ];
         }
 
         $state = $this->update_checker->getUpdateState();
         return [
-            'last_check' => $state->getLastCheck(),
+            'last_check' => $state ? $state->getLastCheck() : 'Never',
             'version_installed' => KC_VERSION,
             'update_available' => $this->update_checker->getUpdate() !== null
         ];
