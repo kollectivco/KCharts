@@ -1,0 +1,148 @@
+/* Public Facing Chart Styles */
+
+.kc-public-wrap {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #111;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.kc-public-wrap * {
+    box-sizing: border-box;
+}
+
+/* Base Bento System for Public */
+.kc-public-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.kc-public-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eaeaea;
+}
+
+.kc-public-card.dark {
+    background: #111;
+    color: #fff;
+    border-color: #333;
+}
+
+.kc-public-card.dark h3 {
+    color: #fff;
+}
+
+.kc-public-card h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+/* Charts Table */
+.kc-chart-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.kc-chart-table th {
+    text-align: left;
+    padding: 12px 10px;
+    color: #888;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-bottom: 2px solid #eaeaea;
+}
+
+.kc-chart-table td {
+    padding: 15px 10px;
+    border-bottom: 1px solid #f5f5f5;
+    vertical-align: middle;
+}
+
+.kc-chart-table tr:hover td {
+    background: #fdfdfd;
+}
+
+.kc-rank {
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-align: center;
+    width: 60px;
+}
+
+.kc-img-placeholder {
+    width: 50px;
+    height: 50px;
+    background: #eaeaea;
+    border-radius: 4px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 15px;
+}
+
+.kc-track-meta {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.kc-track-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.kc-artist-name {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
+
+/* Badges */
+.kc-public-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.kc-public-badge.up { background: #dcfce7; color: #166534; }
+.kc-public-badge.down { background: #ffedd5; color: #9a3412; }
+.kc-public-badge.new { background: #fee2e2; color: #991b1b; }
+.kc-public-badge.same { background: #f3f4f6; color: #374151; }
+
+.kc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    text-align: center;
+}
+
+.kc-stat-box {
+    background: #fafafa;
+    border: 1px solid #eaeaea;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.kc-stat-box span {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #888;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.kc-stat-box strong {
+    font-size: 1.4rem;
+    font-weight: 800;
+}

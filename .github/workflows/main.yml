@@ -1,0 +1,49 @@
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Plugin ZIP
+        run: |
+          PLUGIN_SLUG="kontentainment-charts"
+          VERSION=$(grep -m 1 "Version:" kontentainment-charts.php | awk '{print $NF}')
+          ZIP_NAME="${PLUGIN_SLUG}-${VERSION}.zip"
+          
+          echo "Building version ${VERSION}..."
+          
+          # Create temporary folder for ZIP
+          mkdir -p build/${PLUGIN_SLUG}
+          
+          # Copy everything except local/dev junk
+          rsync -av --progress . build/${PLUGIN_SLUG} \
+            --exclude '.git*' \
+            --exclude '.github*' \
+            --exclude 'node_modules' \
+            --exclude 'build' \
+            --exclude 'Archive.zip' \
+            --exclude 'composer.lock'
+            
+          cd build
+          zip -r ../${ZIP_NAME} ${PLUGIN_SLUG}
+          cd ..
+          
+          echo "ZIP_PATH=${ZIP_NAME}" >> $GITHUB_ENV
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.ZIP_PATH }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

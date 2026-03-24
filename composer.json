@@ -1,0 +1,20 @@
+{
+    "name": "kontentainment/charts",
+    "description": "A production-ready WordPress plugin for weekly chart ingestion and management.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Kontentainment",
+            "email": "hello@kontentainment.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Kontentainment\\Charts\\": "app/"
+        }
+    },
+    "require": {
+        "php": ">=8.0"
+    }
+}
