@@ -3096,9 +3096,46 @@ class AMC_Admin {
 	}
 
 	/**
+	 * Render the main dashboard header component.
+	 */
+	private static function render_dashboard_header( $title, $subtitle, $actions = array() ) {
+		?>
+		<header class="amc-admin-topbar">
+			<div>
+				<p class="amc-admin-kicker">Kontentainment Charts</p>
+				<h1><?php echo esc_html( $title ); ?></h1>
+				<p class="amc-admin-subcopy"><?php echo esc_html( $subtitle ); ?></p>
+			</div>
+			<?php if ( ! empty( $actions ) ) : ?>
+				<div class="amc-admin-topbar__actions">
+					<?php foreach ( $actions as $action ) : ?>
+						<a class="button <?php echo esc_attr( $action['class'] ); ?>" href="<?php echo esc_url( $action['url'] ); ?>">
+							<?php echo esc_html( $action['label'] ); ?>
+						</a>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+		</header>
+		<?php
+	}
+
+	/**
+	 * Render an empty state component.
+	 */
+	private static function render_empty_state( $title, $copy, $btn_label = '', $btn_url = '' ) {
+		?>
+		<div class="amc-admin-empty-state">
+			<strong><?php echo esc_html( $title ); ?></strong>
+			<p><?php echo esc_html( $copy ); ?></p>
+			<?php if ( $btn_label && $btn_url ) : ?>
+				<a class="button button-primary" href="<?php echo esc_url( $btn_url ); ?>"><?php echo esc_html( $btn_label ); ?></a>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Render theme toggle button.
-	 *
-	 * @return void
 	 */
 	private static function render_theme_toggle() {
 		echo '<button type="button" class="button button-secondary amc-theme-toggle" data-amc-theme-toggle data-amc-theme-label-dark="Light Mode" data-amc-theme-label-light="Dark Mode" aria-pressed="false">Light Mode</button>';
