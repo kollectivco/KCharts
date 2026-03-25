@@ -11,7 +11,7 @@ class AMC_Updater {
 	/**
 	 * GitHub repository.
 	 */
-	const REPO = 'kollectivco/kontent';
+	const REPO = 'kollectivco/KCharts';
 
 	/**
 	 * Packaged ZIP file name.
@@ -123,8 +123,11 @@ class AMC_Updater {
 		$target = WP_PLUGIN_DIR . '/' . AMC_PLUGIN_SLUG;
 
 		if ( ! empty( $result['destination'] ) && ! empty( $wp_filesystem ) ) {
-			$wp_filesystem->move( $result['destination'], $target, true );
-			$result['destination'] = $target;
+			// If destination is already the target, we don't need to move it.
+			if ( rtrim( $result['destination'], '/' ) !== rtrim( $target, '/' ) ) {
+				$wp_filesystem->move( $result['destination'], $target, true );
+				$result['destination'] = $target;
+			}
 		}
 
 		if ( is_plugin_active( plugin_basename( AMC_PLUGIN_FILE ) ) ) {
@@ -276,26 +279,11 @@ class AMC_Updater {
 			'User-Agent' => 'Kontentainment-Charts-Plugin',
 		);
 
+		// Always use officially published releases first.
 		$response = wp_remote_get( 'https://api.github.com/repos/' . self::REPO . '/releases/latest', array( 'headers' => $headers, 'timeout' => 15 ) );
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			$response = wp_remote_get( 'https://api.github.com/repos/' . self::REPO . '/tags', array( 'headers' => $headers, 'timeout' => 15 ) );
-
-			if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-				return array();
-			}
-
-			$tags = json_decode( wp_remote_retrieve_body( $response ), true );
-			$tag  = ! empty( $tags[0]['name'] ) ? $tags[0]['name'] : '';
-
-			$data = array(
-				'version' => ltrim( $tag, 'v' ),
-				'package' => self::package_url_for_tag( $tag ),
-				'body'    => 'Tagged release from GitHub.',
-			);
-
-			set_site_transient( $cache_key, $data, 6 * HOUR_IN_SECONDS );
-			return $data;
+			return array();
 		}
 
 		$release = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -304,12 +292,19 @@ class AMC_Updater {
 			return array();
 		}
 
+		$package_url = self::release_package_url( $release );
+
+		// Strictly forbid updates without a packaged ZIP asset.
+		if ( ! $package_url ) {
+			return array();
+		}
+
 		$data = array(
 			'version'  => ltrim( $release['tag_name'], 'v' ),
-			'package'  => self::release_package_url( $release ),
+			'package'  => $package_url,
 			'body'     => ! empty( $release['body'] ) ? wp_strip_all_tags( $release['body'] ) : '',
 			'requires' => '6.0',
-			'tested'   => get_bloginfo( 'version' ),
+			'tested'   => '6.5',
 		);
 
 		set_site_transient( $cache_key, $data, 6 * HOUR_IN_SECONDS );

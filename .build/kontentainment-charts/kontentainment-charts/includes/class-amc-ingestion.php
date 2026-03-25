@@ -1354,6 +1354,23 @@ class AMC_Ingestion {
 			$issues[] = 'Chart week has no generated entries.';
 		}
 
+		// Check for overlaps (same chart, country, and week_date but different ID).
+		$overlaps = AMC_DB::get_chart_weeks( array(
+			'chart_id'  => (int) $week['chart_id'],
+			'country'   => (string) $week['country'],
+			'week_date' => (string) $week['week_date'],
+			'exclude'   => (int) $week['id'],
+		) );
+		if ( ! empty( $overlaps ) ) {
+			$ids      = wp_list_pluck( $overlaps, 'id' );
+			$issues[] = 'Duplicate conflict: There is another chart week for this date/chart/country (ID: ' . implode( ', ', $ids ) . '). Resolve duplicates before publishing.';
+		}
+
+		// Minimum density check.
+		if ( count( $entries ) > 0 && count( $entries ) < 10 ) {
+			$issues[] = 'Low density warning: This week only has ' . count( $entries ) . ' entries. A standard chart usually requires more. Verify if this is intentional.';
+		}
+
 		if ( 'archived' === $week['status'] ) {
 			$issues[] = 'Archived weeks should be restored to draft before publishing.';
 		}
@@ -1799,7 +1816,7 @@ class AMC_Ingestion {
 	 * @param array  $context Context.
 	 * @return void
 	 */
-	private static function notify( $type, $message, $context = array() ) {
+	public static function notify( $type, $message, $context = array() ) {
 		$notifications = get_option( 'amc_operator_notifications', array() );
 		$type          = sanitize_key( $type );
 		$message       = sanitize_text_field( $message );

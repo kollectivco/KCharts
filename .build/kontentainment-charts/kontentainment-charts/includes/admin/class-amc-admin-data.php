@@ -763,7 +763,20 @@ class AMC_Admin_Data {
 	 * @return array
 	 */
 	public static function tracks() {
-		$rows = AMC_DB::get_rows( 'tracks', array( 'order_by' => 'title ASC' ) );
+		$filters = self::track_filters_from_request();
+		$rows    = AMC_DB::get_rows(
+			'tracks',
+			array(
+				'where'          => array(
+					'status'    => $filters['status'],
+					'artist_id' => $filters['artist_id'],
+					'album_id'  => $filters['album_id'],
+				),
+				'search'         => $filters['search'],
+				'search_columns' => array( 'title', 'isrc', 'aliases', 'genre' ),
+				'order_by'       => 'title ASC',
+			)
+		);
 
 		return array_map(
 			function ( $row ) {
@@ -799,7 +812,19 @@ class AMC_Admin_Data {
 	 * @return array
 	 */
 	public static function artists() {
-		$rows = AMC_DB::get_rows( 'artists', array( 'order_by' => 'name ASC' ) );
+		$filters = self::artist_filters_from_request();
+		$rows    = AMC_DB::get_rows(
+			'artists',
+			array(
+				'where'          => array(
+					'status'  => $filters['status'],
+					'country' => $filters['country'],
+				),
+				'search'         => $filters['search'],
+				'search_columns' => array( 'name', 'slug', 'aliases', 'genre', 'bio' ),
+				'order_by'       => 'name ASC',
+			)
+		);
 
 		return array_map(
 			function ( $row ) {
@@ -830,29 +855,65 @@ class AMC_Admin_Data {
 	 * @return array
 	 */
 	public static function albums() {
-		$rows = AMC_DB::get_rows( 'albums', array( 'order_by' => 'title ASC' ) );
+		$filters = self::album_filters_from_request();
+		$rows    = AMC_DB::get_rows(
+			'albums',
+			array(
+				'where'          => array(
+					'status'    => $filters['status'],
+					'artist_id' => $filters['artist_id'],
+				),
+				'search'         => $filters['search'],
+				'search_columns' => array( 'title', 'slug', 'genre', 'label' ),
+				'order_by'       => 'title ASC',
+			)
+		);
 
 		return array_map(
 			function ( $row ) {
 				$artist = ! empty( $row['artist_id'] ) ? AMC_DB::get_row( 'artists', (int) $row['artist_id'] ) : null;
 
 				return array(
-					'id'           => (int) $row['id'],
-					'title'        => $row['title'],
-					'slug'         => $row['slug'],
-					'artist'       => $artist ? $artist['name'] : 'Unknown',
-					'release_date' => $row['release_date'],
-					'tracks'       => AMC_DB::count_rows( 'tracks', array( 'album_id' => (int) $row['id'] ) ),
-					'genre'        => $row['genre'],
-					'label'        => $row['label'],
-					'status'       => ucfirst( $row['status'] ),
-					'raw_status'   => $row['status'],
-					'artist_id'    => (int) $row['artist_id'],
-					'description'  => $row['description'],
-					'gradient'     => $row['gradient'],
+					'id'             => (int) $row['id'],
+					'title'          => $row['title'],
+					'slug'           => $row['slug'],
+					'artist'         => $artist ? $artist['name'] : 'Unknown',
+					'release_date'   => $row['release_date'],
+					'genre'          => $row['genre'],
+					'label'          => $row['label'],
+					'related_tracks' => AMC_DB::count_rows( 'tracks', array( 'album_id' => (int) $row['id'] ) ),
+					'status'         => ucfirst( $row['status'] ),
+					'raw_status'     => $row['status'],
+					'artist_id'      => (int) $row['artist_id'],
+					'gradient'       => $row['gradient'],
 				);
 			},
 			$rows
+		);
+	}
+
+	public static function track_filters_from_request() {
+		return array(
+			'status'    => isset( $_GET['track_status'] ) ? sanitize_key( wp_unslash( $_GET['track_status'] ) ) : '',
+			'artist_id' => isset( $_GET['track_artist_id'] ) ? absint( wp_unslash( $_GET['track_artist_id'] ) ) : 0,
+			'album_id'  => isset( $_GET['track_album_id'] ) ? absint( wp_unslash( $_GET['track_album_id'] ) ) : 0,
+			'search'    => isset( $_GET['track_search'] ) ? sanitize_text_field( wp_unslash( $_GET['track_search'] ) ) : '',
+		);
+	}
+
+	public static function artist_filters_from_request() {
+		return array(
+			'status'  => isset( $_GET['artist_status'] ) ? sanitize_key( wp_unslash( $_GET['artist_status'] ) ) : '',
+			'country' => isset( $_GET['artist_country'] ) ? sanitize_text_field( wp_unslash( $_GET['artist_country'] ) ) : '',
+			'search'  => isset( $_GET['artist_search'] ) ? sanitize_text_field( wp_unslash( $_GET['artist_search'] ) ) : '',
+		);
+	}
+
+	public static function album_filters_from_request() {
+		return array(
+			'status'    => isset( $_GET['album_status'] ) ? sanitize_key( wp_unslash( $_GET['album_status'] ) ) : '',
+			'artist_id' => isset( $_GET['album_artist_id'] ) ? absint( wp_unslash( $_GET['album_artist_id'] ) ) : 0,
+			'search'    => isset( $_GET['album_search'] ) ? sanitize_text_field( wp_unslash( $_GET['album_search'] ) ) : '',
 		);
 	}
 
@@ -958,6 +1019,7 @@ class AMC_Admin_Data {
 					'create_mode'=> 'auto_created' === $resolution ? trim( $auto_type . ' created automatically' ) : ( 'manual_override' === $resolution ? 'Manually overridden' : ( 'matched_existing' === $resolution ? 'Matched to existing entity' : ( (int) $row['candidate_entity_id'] > 0 ? 'Possible existing match' : 'Possible new entity' ) ) ),
 					'candidate_link' => (int) $row['candidate_entity_id'] > 0 ? admin_url( 'admin.php?page=kontentainment-charts-' . $row['entity_type'] . 's&' . $row['entity_type'] . '_id=' . (int) $row['candidate_entity_id'] ) : '',
 					'queue'      => $row,
+					'source_row' => $source_row, // Added for Phase 3 hardening
 				);
 			},
 			$rows
@@ -1264,6 +1326,40 @@ class AMC_Admin_Data {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Detailed pipeline readiness state for a specific operational cycle.
+	 *
+	 * @return array
+	 */
+	public static function pipeline_readiness() {
+		$uploads = AMC_DB::get_rows( 'source_uploads', array( 'order_by' => 'id DESC', 'limit' => 5 ) );
+		$pending_matches = AMC_DB::count_rows( 'matching_queue', array( 'status' => 'review_needed' ) );
+		$running_jobs    = AMC_DB::count_rows( 'jobs', array( 'status' => 'running' ) );
+		$queued_jobs     = AMC_DB::count_rows( 'jobs', array( 'status' => 'queued' ) );
+		$draft_weeks     = AMC_DB::count_rows( 'chart_weeks', array( 'status' => 'draft' ) );
+
+		$blocked = $pending_matches > 0 || $running_jobs > 0;
+		$state   = 'ready';
+
+		if ( $running_jobs > 0 ) {
+			$state = 'processing';
+		} elseif ( $pending_matches > 0 ) {
+			$state = 'blocked';
+		} elseif ( $queued_jobs > 0 ) {
+			$state = 'queued';
+		}
+
+		return array(
+			'state'           => $state,
+			'blocked'         => $blocked,
+			'pending_matches' => (int) $pending_matches,
+			'running_jobs'    => (int) $running_jobs,
+			'queued_jobs'     => (int) $queued_jobs,
+			'draft_weeks'     => (int) $draft_weeks,
+			'last_upload'     => ! empty( $uploads[0] ) ? $uploads[0] : null,
+		);
 	}
 
 	/**
