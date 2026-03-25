@@ -3,17 +3,34 @@
     <p style="color:#666; font-size:1.1rem; margin-bottom: 40px;">Highest performing songs recorded in our database.</p>
     
     <div class="kc-public-grid">
-        <?php for($i=1; $i<=6; $i++): ?>
-        <div class="kc-public-card" style="display:flex; align-items:center; padding: 20px; gap: 15px;">
-            <div style="width: 60px; height: 60px; background: url('https://picsum.photos/100/100?random=<?php echo $i+10; ?>'); background-size:cover; border-radius: 6px;"></div>
-            <div>
-                <h3 style="font-size: 1.1rem; margin: 0 0 5px 0;">Track Title Here</h3>
-                <p style="color:#888; font-size:0.85rem; margin:0;">Artist Name • Peak: #<?php echo rand(1, 10); ?></p>
-            </div>
-            <div style="margin-left:auto;">
-                <span class="kc-public-badge up" style="font-size: 0.7rem; padding: 4px 6px;">140 Weeks</span>
-            </div>
+        <?php
+        global $wpdb;
+        $prefix = $wpdb->prefix . 'kc_';
+        $tracks = $wpdb->get_results("
+            SELECT t.*, a.name as artist_name, COUNT(e.id) as total_weeks, MIN(e.rank) as peak_pos
+            FROM {$prefix}tracks t
+            LEFT JOIN {$prefix}artists a ON t.primary_artist_id = a.id
+            JOIN {$prefix}chart_entries e ON e.track_id = t.id
+            GROUP BY t.id
+            ORDER BY total_weeks DESC
+            LIMIT 20
+        ");
+        
+        if ($tracks) : foreach($tracks as $track): ?>
+        <div class="kc-public-card" style="padding: 20px;">
+            <a href="<?php echo home_url('/charts/track/'.$track->slug.'/'); ?>" style="display:flex; align-items:center; text-decoration:none; color:inherit; gap: 15px;">
+                <div style="width: 60px; height: 60px; background: #eee url('<?php echo esc_url($track->artwork_url ?: 'https://picsum.photos/100/100?random='.$track->id+100); ?>'); background-size:cover; border-radius: 6px;"></div>
+                <div>
+                    <h3 style="font-size: 1.1rem; margin: 0 0 5px 0;"><?php echo esc_html($track->title); ?></h3>
+                    <p style="color:#888; font-size:0.85rem; margin:0;"><?php echo esc_html($track->artist_name); ?> • Peak: #<?php echo (int)$track->peak_pos; ?></p>
+                </div>
+                <div style="margin-left:auto;">
+                    <span class="kc-public-badge up" style="font-size: 0.7rem; padding: 4px 6px;"><?php echo (int)$track->total_weeks; ?> Weeks</span>
+                </div>
+            </a>
         </div>
-        <?php endfor; ?>
+        <?php endforeach; else : ?>
+            <p>No tracks found.</p>
+        <?php endif; ?>
     </div>
 </div>

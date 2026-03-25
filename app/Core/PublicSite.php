@@ -19,8 +19,72 @@ class PublicSite {
         add_shortcode( 'kc_track', [ $this, 'render_single_track' ] );
         add_shortcode( 'kc_methodology', [ $this, 'render_methodology' ] );
 
+        // Routing & Rewrites
+        add_action( 'init', [ $this, 'register_rewrites' ] );
+        add_filter( 'query_vars', [ $this, 'register_query_vars' ] );
+        add_action( 'template_redirect', [ $this, 'handle_routing' ] );
+
         // Enqueue styles
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_styles' ] );
+    }
+
+    public function register_rewrites() {
+        $base = 'charts';
+        
+        // Landing / Index
+        add_rewrite_rule( "^{$base}/?$", 'index.php?kc_route=index', 'top' );
+        
+        // Methodology / About
+        add_rewrite_rule( "^{$base}/about/?$", 'index.php?kc_route=about', 'top' );
+
+        // Tracks Index
+        add_rewrite_rule( "^{$base}/tracks/?$", 'index.php?kc_route=tracks', 'top' );
+        
+        // Artists Index
+        add_rewrite_rule( "^{$base}/artists/?$", 'index.php?kc_route=artists', 'top' );
+
+        // Single Track: /charts/track/{slug}
+        add_rewrite_rule( "^{$base}/track/([^/]+)/?$", 'index.php?kc_route=track&kc_slug=$matches[1]', 'top' );
+
+        // Single Artist: /charts/artist/([^/]+)/?
+        add_rewrite_rule( "^{$base}/artist/([^/]+)/?$", 'index.php?kc_route=artist&kc_slug=$matches[1]', 'top' );
+
+        // Single Chart: /charts/{slug}
+        add_rewrite_rule( "^{$base}/([^/]+)/?$", 'index.php?kc_route=chart&kc_slug=$matches[1]', 'top' );
+
+        // Charts Dashboard
+        add_rewrite_rule( '^charts-dashboard/?$', 'index.php?kc_route=dashboard', 'top' );
+        add_rewrite_rule( '^charts-dashboard/([^/]+)/?$', 'index.php?kc_route=dashboard&kc_section=$matches[1]', 'top' );
+        
+        // Legacy Redirect (Optional but requested rules check)
+        add_rewrite_rule( '^music-charts/?(.*)$', 'index.php?kc_legacy=1&kc_path=$matches[1]', 'top' );
+    }
+
+    public function register_query_vars( $vars ) {
+        $vars[] = 'kc_route';
+        $vars[] = 'kc_slug';
+        $vars[] = 'kc_section';
+        $vars[] = 'kc_legacy';
+        $vars[] = 'kc_path';
+        return $vars;
+    }
+
+    public function handle_routing() {
+        $route = get_query_var('kc_route');
+        $legacy = get_query_var('kc_legacy');
+
+        if ( $legacy ) {
+            wp_redirect( home_url('/charts/'), 301 );
+            exit;
+        }
+
+        if ( ! $route ) return;
+
+        // Force a page template or just hijax the content?
+        // For V1, we will bypass the normal loop if a route is targeted
+        add_filter( 'template_include', function() use ($route) {
+            return KC_DIR . 'resources/views/public/route-handler.php';
+        });
     }
 
     public function enqueue_styles() {
@@ -84,7 +148,7 @@ class PublicSite {
         $chart_info = $wpdb->get_row($wpdb->prepare("SELECT name FROM {$prefix}charts WHERE id = %d", $chart_id));
 
         $entries = $wpdb->get_results($wpdb->prepare("
-            SELECT e.*, t.title as track_title, a.name as artist_name, t.artwork_url
+            SELECT e.*, t.title as track_title, t.slug as track_slug, a.name as artist_name, a.slug as artist_slug, t.artwork_url
             FROM {$prefix}chart_entries e
             JOIN {$prefix}tracks t ON e.track_id = t.id
             LEFT JOIN {$prefix}artists a ON t.primary_artist_id = a.id

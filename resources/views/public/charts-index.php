@@ -6,23 +6,27 @@
     </div>
 
     <div class="kc-public-grid">
-        <div class="kc-public-card dark">
-            <h3>Global Top 50</h3>
-            <p style="color:#aaa;">The definitive ranking of the most consumed tracks worldwide.</p>
-            <a href="#" style="display:inline-block; margin-top:15px; color:#fff; font-weight:bold; text-decoration:none;">View Latest Week →</a>
-        </div>
+        <?php
+        global $wpdb;
+        $prefix = $wpdb->prefix . 'kc_';
+        $charts = $wpdb->get_results("SELECT * FROM {$prefix}charts WHERE status = 'active' ORDER BY name ASC");
         
-        <div class="kc-public-card">
-            <h3>US Top Trending</h3>
-            <p style="color:#666;">Fastest growing tracks across algorithmic platforms.</p>
-            <a href="#" style="display:inline-block; margin-top:15px; color:#000; font-weight:bold; text-decoration:none;">View Latest Week →</a>
+        if ($charts) :
+            foreach ($charts as $chart) :
+                $latest_week = $wpdb->get_var($wpdb->prepare("SELECT week_date FROM {$prefix}chart_weeks WHERE chart_id = %d AND status = 'published' ORDER BY week_date DESC LIMIT 1", $chart->id));
+        ?>
+        <div class="kc-public-card <?php echo $chart->slug === 'global-top-50' ? 'dark' : ''; ?>">
+            <h3><?php echo esc_html($chart->name); ?></h3>
+            <p style="color:<?php echo $chart->slug === 'global-top-50' ? '#aaa' : '#666'; ?>;">The weekly <?php echo esc_html($chart->chart_type); ?> rankings.</p>
+            <?php if ($latest_week) : ?>
+                <a href="<?php echo home_url('/charts/' . $chart->slug . '/'); ?>" style="display:inline-block; margin-top:15px; color:<?php echo $chart->slug === 'global-top-50' ? '#fff' : '#000'; ?>; font-weight:bold; text-decoration:none;">View Latest Week →</a>
+            <?php else : ?>
+                <span style="display:inline-block; margin-top:15px; color:#999; font-size:0.8rem;">Coming Soon</span>
+            <?php endif; ?>
         </div>
-        
-        <div class="kc-public-card">
-            <h3>Regional Movers</h3>
-            <p style="color:#666;">Tracks making the biggest leaps in localized markets.</p>
-            <a href="#" style="display:inline-block; margin-top:15px; color:#000; font-weight:bold; text-decoration:none;">View Latest Week →</a>
-        </div>
+        <?php endforeach; else : ?>
+        <p style="text-align:center; grid-column:span 3; color:#888;">No active charts found.</p>
+        <?php endif; ?>
     </div>
 
 </div>

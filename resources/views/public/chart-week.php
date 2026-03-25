@@ -44,8 +44,16 @@
                     <td>
                         <div class="kc-img-placeholder" style="<?php echo $img_style; ?> background-size:cover;"></div>
                         <div class="kc-track-meta">
-                            <p class="kc-track-title"><?php echo esc_html($entry->track_title); ?></p>
-                            <p class="kc-artist-name"><?php echo esc_html($entry->artist_name); ?></p>
+                            <p class="kc-track-title">
+                                <a href="<?php echo home_url('/charts/track/' . $entry->track_slug . '/'); ?>" style="color:inherit; text-decoration:none;">
+                                    <?php echo esc_html($entry->track_title); ?>
+                                </a>
+                            </p>
+                            <p class="kc-artist-name">
+                                <a href="<?php echo home_url('/charts/artist/' . $entry->artist_slug . '/'); ?>" style="color:#666; text-decoration:none;">
+                                    <?php echo esc_html($entry->artist_name); ?>
+                                </a>
+                            </p>
                         </div>
                     </td>
                     <td style="text-align:right; font-weight:800;"><?php echo esc_html($entry->peak_position); ?></td>
