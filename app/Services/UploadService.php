@@ -69,9 +69,12 @@ class UploadService {
         $valid_count = 0;
         $new_artists = 0;
         $new_tracks = 0;
+        $updated_artists = 0;
+        $updated_tracks = 0;
+        $review_needed = 0;
         
         foreach ( $rows as $idx => $csv_row ) {
-            if ( count($header) !== count($csv_row) ) continue; // malformed trailing empty row handling
+            if ( count($header) !== count($csv_row) ) continue;
             $mapped_raw = array_combine( $header, $csv_row );
             
             $normalized_data = $parser->normalizeRow( $mapped_raw );
@@ -102,6 +105,9 @@ class UploadService {
             
             $new_artists += $resolution['new_artists'];
             $new_tracks += $resolution['new_tracks'];
+            if ($resolution['status'] === 'needs_review') {
+                $review_needed++;
+            }
             
             $row_count++;
             $valid_count++;
@@ -116,6 +122,8 @@ class UploadService {
                 'valid_rows' => $valid_count,
                 'created_artists' => $new_artists,
                 'created_tracks' => $new_tracks,
+                'rows_processed' => $valid_count,
+                'rows_skipped' => $review_needed,
                 'imported_rows' => $valid_count
             ],
             [ 'id' => $upload_id ]
@@ -128,10 +136,13 @@ class UploadService {
         }
 
         return [
-            'rows' => $valid_count,
             'upload_id' => $upload_id,
+            'total_rows' => $row_count,
+            'valid_rows' => $valid_count,
+            'review_rows' => $review_needed,
             'artists_created' => $new_artists,
-            'tracks_created' => $new_tracks
+            'tracks_created' => $new_tracks,
+            'parser_detected' => ucfirst($platform_slug)
         ];
     }
 }

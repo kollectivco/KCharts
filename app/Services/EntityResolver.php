@@ -11,7 +11,7 @@ class EntityResolver {
         $this->container = $container;
     }
 
-    public function resolve( $normalized, $upload_id, $source_row_id, $chart_id, $country_id, $platform_slug, $week_date ) {
+    public function resolve( $normalized, $upload_id, $source_row_id, $chart_id, $country_id, $platform_slug, $week_date, $manual_artist_id = null, $manual_track_title = null ) {
         global $wpdb;
         $prefix = $wpdb->prefix . 'kc_';
         
@@ -60,8 +60,16 @@ class EntityResolver {
         
         // 2. Resolve Track
         $track_status = 'auto_matched';
-        $track_norm = sanitize_title($raw_track_title);
         $track_id = null;
+        
+        // Manual override case
+        if ( $manual_artist_id && !empty($manual_track_title) ) {
+            $primary_artist_id = $manual_artist_id;
+            $raw_track_title = $manual_track_title;
+            $track_status = 'manually_resolved';
+        }
+
+        $track_norm = sanitize_title($raw_track_title);
         
         if ( !empty($track_norm) && $primary_artist_id ) {
             $track_id = $wpdb->get_var($wpdb->prepare(
@@ -79,20 +87,29 @@ class EntityResolver {
                 ]);
                 $track_id = $wpdb->insert_id;
                 $new_tracks++;
-                $track_status = 'auto_created';
+                if ($track_status !== 'manually_resolved') $track_status = 'auto_created';
                 
-                // insert to bridge table for all authors
-                foreach ( $artist_ids as $k => $art ) {
+                // insert to bridge table for authors
+                if (!$manual_artist_id) {
+                    foreach ( $artist_ids as $k => $art ) {
+                        $wpdb->insert( "{$prefix}track_artists", [
+                            'track_id' => $track_id,
+                            'artist_id' => $art['id'],
+                            'role' => $art['role'],
+                            'sort_order' => $k
+                        ]);
+                    }
+                } else {
                     $wpdb->insert( "{$prefix}track_artists", [
                         'track_id' => $track_id,
-                        'artist_id' => $art['id'],
-                        'role' => $art['role'],
-                        'sort_order' => $k
+                        'artist_id' => $manual_artist_id,
+                        'role' => 'main',
+                        'sort_order' => 0
                     ]);
                 }
             }
             
-            // 3. Save weekly metric safely without destroying identity
+            // 3. Save weekly metric safely
             $query = "INSERT INTO {$prefix}track_week_metrics 
                 (track_id, chart_id, country_id, platform_slug, week_date, source_rank, source_previous_rank, source_peak_rank, source_weeks_on_chart, metric_primary_type, metric_primary_value, growth_percent, external_url, external_uri, upload_id, source_row_id) 
                 VALUES (%d, %d, %d, %s, %s, %d, %d, %d, %d, %s, %f, %f, %s, %s, %d, %d) 

@@ -45,67 +45,45 @@ class Ajax {
             $upload = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$prefix}source_uploads WHERE id = %d", $row->upload_id));
             if ( ! $upload ) throw new \Exception("Upload parent not found.");
 
-            $norm = json_decode($row->normalized_data_json, true);
+            $normalized_data = json_decode($row->normalized_data_json, true);
 
-            // 1. Ensure Track exists for this artist/title
-            $track_norm = sanitize_title($track_title);
-            $track_id = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM {$prefix}tracks WHERE normalized_title = %s AND primary_artist_id = %d LIMIT 1",
-                $track_norm, $artist_id
-            ));
+            /** @var \Kontentainment\Charts\Services\EntityResolver $resolver */
+            $resolver = $this->container->get( \Kontentainment\Charts\Services\EntityResolver::class );
 
-            if ( ! $track_id ) {
-                $wpdb->insert( "{$prefix}tracks", [
-                    'title' => $track_title,
-                    'normalized_title' => $track_norm,
-                    'slug' => $track_norm . '-' . uniqid(),
-                    'primary_artist_id' => $artist_id,
-                    'status' => 'active'
-                ]);
-                $track_id = $wpdb->insert_id;
-                
-                $wpdb->insert( "{$prefix}track_artists", [
-                    'track_id' => $track_id,
-                    'artist_id' => $artist_id,
-                    'role' => 'main',
-                    'sort_order' => 0
-                ]);
+            // 1. Resolve or Create the Track (Manual Overrides)
+            $res = $resolver->resolve( 
+                $normalized_data, 
+                $row->upload_id, 
+                $row->id, 
+                $upload->chart_id, 
+                $upload->country_id, 
+                $upload->source_platform, 
+                $upload->week_date, 
+                $artist_id, 
+                $track_title 
+            );
+            $track_id = $res['track_id'];
+
+            // 2. Update Row status
+            $updated_row = $wpdb->update(
+                $prefix . 'source_rows',
+                [
+                    'resolution_status' => 'resolved',
+                    'matched_track_id' => $track_id
+                ],
+                [ 'id' => $row_id ]
+            );
+
+            if ( false === $updated_row ) {
+                wp_send_json_error(['message' => 'Database update failed']);
             }
 
-            // 2. Update Metric
-            $query = "INSERT INTO {$prefix}track_week_metrics 
-                (track_id, chart_id, country_id, platform_slug, week_date, source_rank, source_previous_rank, source_peak_rank, source_weeks_on_chart, metric_primary_type, metric_primary_value, growth_percent, external_url, external_uri, upload_id, source_row_id) 
-                VALUES (%d, %d, %d, %s, %s, %d, %d, %d, %d, %s, %f, %f, %s, %s, %d, %d) 
-                ON DUPLICATE KEY UPDATE 
-                track_id = VALUES(track_id),
-                updated_at = CURRENT_TIMESTAMP";
-
-            $wpdb->query($wpdb->prepare($query,
-                $track_id,
-                $upload->chart_id,
-                $upload->country_id,
-                $upload->source_platform,
-                $upload->week_date,
-                $norm['raw_rank'],
-                $norm['raw_previous_rank'],
-                $norm['raw_peak_rank'] ?? null,
-                $norm['raw_weeks_on_chart'] ?? null,
-                $norm['metric_primary_type'],
-                $norm['metric_primary_value'],
-                $norm['raw_growth_value'],
-                $norm['external_url'],
-                $norm['external_uri'],
-                $row->upload_id,
-                $row->id
-            ));
-
-            // 3. Update Row status
-            $wpdb->update($prefix . 'source_rows', [
-                'resolution_status' => 'resolved',
-                'matched_track_id' => $track_id
-            ], [ 'id' => $row_id ]);
-
-            wp_send_json_success( [ 'message' => 'Row resolved successfully.' ] );
+            wp_send_json_success([
+                'message' => 'Row resolved successfully',
+                'track_id' => $track_id,
+                'new_artists' => $res['new_artists'] ?? 0,
+                'new_tracks' => $res['new_tracks'] ?? 0
+            ]);
         } catch ( \Exception $e ) {
             wp_send_json_error( [ 'message' => $e->getMessage() ] );
         }

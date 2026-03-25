@@ -21,13 +21,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Upload Handler dummy for now
+    // 3-Step Upload Ingestion Flow
     const uploadForm = document.getElementById('kc-upload-form');
+    const previewModal = document.getElementById('kc-upload-preview-modal');
+    const resultModal = document.getElementById('kc-upload-result-modal');
+    const previewContent = document.getElementById('kc-preview-content');
+    const confirmBtn = document.getElementById('kc-confirm-import');
+    const cancelBtn = document.getElementById('kc-cancel-upload');
+    const fileInput = document.getElementById('chart_file');
+    const dropZone = document.getElementById('kc-drop-zone');
+    const fileDisplay = document.getElementById('kc-file-display');
+
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                fileDisplay.innerHTML = `<strong style="color:#000;">${fileInput.files[0].name}</strong> selected.`;
+            }
+        });
+    }
+
     if (uploadForm) {
         uploadForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const btn = uploadForm.querySelector('button[type="submit"]');
-            btn.textContent = "Processing...";
+            btn.textContent = "Analyzing File...";
             btn.disabled = true;
 
             const formData = new FormData(uploadForm);
@@ -40,25 +58,69 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(res => res.json())
             .then(data => {
-                btn.textContent = "Import Complete";
+                btn.textContent = "Upload & Preview →";
+                btn.disabled = false;
+                
                 if(data.success) {
                     const stats = data.data;
-                    alert(`Import successful!\n\nImported Rows: ${stats.rows}\nNew Artists: ${stats.artists_created}\nNew Tracks: ${stats.tracks_created}\nChart Rebuilt Automatically.\n\nClick OK to refresh dashboard.`);
-                    window.location.reload();
+                    showUploadResult(stats);
                 } else {
                     alert("Error: " + data.data.message);
-                    btn.textContent = "Import Data";
-                    btn.disabled = false;
                 }
             })
             .catch(err => {
                 alert("An error occurred");
                 console.error(err);
-                btn.textContent = "Import Data";
                 btn.disabled = false;
             });
         });
     }
+
+    function showUploadResult(stats) {
+        const resultArea = document.getElementById('kc-result-content');
+        resultModal.style.display = 'flex';
+        resultArea.innerHTML = `
+            <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+            <h2 style="margin-bottom: 10px;">Ingestion Complete</h2>
+            <p style="color:#666; margin-bottom:24px;">Source file processed successfully via <strong>${stats.parser_detected}</strong> profile.</p>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; text-align:left; background:#f8fafc; padding:20px; border-radius:12px; border:1px solid #e2e8f0;">
+                <div>
+                    <label style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:700;">Rows Processed</label>
+                    <div style="font-size:1.5rem; font-weight:800;">${stats.total_rows}</div>
+                </div>
+                <div>
+                    <label style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:700;">Errors/Review</label>
+                    <div style="font-size:1.5rem; font-weight:800; color:${stats.review_rows > 0 ? '#dc2626' : '#166534'};">${stats.review_rows}</div>
+                </div>
+                <div style="grid-column: span 2; border-top:1px solid #e2e8f0; padding-top:10px; margin-top:5px;">
+                    <label style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:700;">New Records Created</label>
+                    <div style="font-size:0.95rem; margin-top:5px;">
+                        <strong>${stats.artists_created}</strong> Artists, <strong>${stats.tracks_created}</strong> Tracks
+                    </div>
+                </div>
+            </div>
+            ${stats.review_rows > 0 ? `
+                <div style="margin-top:20px; background:#fff7ed; border:1px solid #ffedd5; padding:12px; border-radius:8px; font-size:0.85rem; color:#9a3412;">
+                    <strong>Heads up!</strong> ${stats.review_rows} rows require manual artist matching in the Review queue.
+                </div>
+            ` : ''}
+        `;
+    }
+
+    // Review Suggestion Logic
+    document.querySelectorAll('.kc-apply-suggestion').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const row = e.target.closest('tr');
+            const artistId = e.target.getAttribute('data-artist-id');
+            const select = row.querySelector('.kc-resolve-artist');
+            select.value = artistId;
+            e.target.textContent = 'Applied';
+            e.target.style.background = '#dcfce7';
+            e.target.style.borderColor = '#166534';
+            e.target.style.color = '#166534';
+        });
+    });
 
     // Publish Chart Week JS Fix
     document.querySelectorAll('.kc-publish-btn').forEach(btn => {
@@ -203,17 +265,29 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if(data.success) {
                     row.style.background = '#dcfce7';
-                    setTimeout(() => row.remove(), 500);
+                    setTimeout(() => {
+                        row.remove();
+                        // Update UI stats if they exist in the summary card
+                        const reviewCountEl = document.querySelector('.kc-stat-review');
+                        if (reviewCountEl) {
+                            const current = parseInt(reviewCountEl.textContent);
+                            reviewCountEl.textContent = Math.max(0, current - 1);
+                        }
+                        // If no more rows, reload to show empty state
+                        if (document.querySelectorAll('.kc-table tbody tr').length === 0) {
+                            window.location.reload();
+                        }
+                    }, 500);
                 } else {
                     alert("Error: " + data.data.message);
-                    e.target.textContent = 'Save & Create';
+                    e.target.textContent = 'Save & Resolve';
                     e.target.disabled = false;
                 }
             })
             .catch(err => {
                 alert("An error occurred.");
                 console.error(err);
-                e.target.textContent = 'Save & Create';
+                e.target.textContent = 'Save & Resolve';
                 e.target.disabled = false;
             });
         });
