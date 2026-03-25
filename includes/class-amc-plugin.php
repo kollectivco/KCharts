@@ -41,6 +41,7 @@ class AMC_Plugin {
 		add_filter( 'query_vars', array( 'AMC_Routing', 'register_query_vars' ) );
 		add_filter( 'template_include', array( 'AMC_Routing', 'template_include' ) );
 		add_filter( 'document_title_parts', array( $this, 'filter_document_title' ) );
+		add_action( 'template_redirect', array( 'AMC_Routing', 'maybe_redirect_legacy_routes' ), 1 );
 
 		AMC_Ingestion::boot();
 		AMC_Updater::boot();
@@ -178,7 +179,7 @@ class AMC_Plugin {
 			return;
 		}
 
-		if ( 'dashboard' === get_query_var( 'amc_route' ) ) {
+		if ( 'dashboard' === get_query_var( 'amc_page' ) ) {
 			wp_enqueue_style(
 				'amc-admin',
 				AMC_PLUGIN_URL . 'assets/css/admin.css',

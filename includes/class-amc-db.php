@@ -450,22 +450,35 @@ class AMC_DB {
 		global $wpdb;
 
 		$defaults = array(
-			'where'   => array(),
-			'order_by'=> 'id DESC',
-			'limit'   => 0,
+			'where'          => array(),
+			'search'         => '',
+			'search_columns' => array(),
+			'order_by'       => 'id DESC',
+			'limit'          => 0,
 		);
 		$args     = wp_parse_args( $args, $defaults );
 		$table    = self::table( $table_key );
 		$where    = array();
 		$values   = array();
 
-		foreach ( $args['where'] as $column => $value ) {
-			if ( is_null( $value ) ) {
+		foreach ( (array) $args['where'] as $column => $value ) {
+			if ( is_null( $value ) || '' === $value ) {
 				continue;
 			}
 
 			$where[]  = "{$column} = %s";
 			$values[] = (string) $value;
+		}
+
+		if ( ! empty( $args['search'] ) && ! empty( $args['search_columns'] ) ) {
+			$search_parts = array();
+			foreach ( (array) $args['search_columns'] as $col ) {
+				$search_parts[] = "{$col} LIKE %s";
+				$values[]       = '%' . $wpdb->esc_like( (string) $args['search'] ) . '%';
+			}
+			if ( ! empty( $search_parts ) ) {
+				$where[] = '(' . implode( ' OR ', $search_parts ) . ')';
+			}
 		}
 
 		$sql = "SELECT * FROM {$table}";
@@ -787,7 +800,9 @@ class AMC_DB {
 			'chart_id' => 0,
 			'country'  => '',
 			'status'   => '',
-			'order_by' => 'week_date DESC, id DESC',
+			'week_date' => '',
+			'exclude'   => 0,
+			'order_by'  => 'week_date DESC, id DESC',
 		);
 		$args     = wp_parse_args( $args, $defaults );
 		$table    = self::table( 'chart_weeks' );
@@ -807,6 +822,16 @@ class AMC_DB {
 		if ( ! empty( $args['country'] ) ) {
 			$where[]  = 'country = %s';
 			$values[] = $args['country'];
+		}
+
+		if ( ! empty( $args['week_date'] ) ) {
+			$where[]  = 'week_date = %s';
+			$values[] = $args['week_date'];
+		}
+
+		if ( ! empty( $args['exclude'] ) ) {
+			$where[]  = 'id != %d';
+			$values[] = absint( $args['exclude'] );
 		}
 
 		$sql = "SELECT * FROM {$table}";
