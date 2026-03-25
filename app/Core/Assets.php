@@ -44,6 +44,6 @@ class Assets {
     }
 
     public function enqueue_public_assets() {
-        // load public assets when shortcodes are used
+        wp_enqueue_style( 'kc-public-css', KC_URL . 'resources/css/public.css', [], KC_VERSION );
     }
 }
