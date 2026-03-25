@@ -3,7 +3,7 @@
  * Plugin Name:       Kontentainment Charts
  * Plugin URI:        https://kontentainment.com
  * Description:       Upload weekly chart spreadsheets, parse, normalize, and publish music chart data.
- * Version:           1.1.1
+ * Version:           1.1.2
  * Author:            Kontentainment
  * Author URI:        https://kontentainment.com
  * License:           GPL-2.0+
@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Constants
  */
-define( 'KC_VERSION', '1.1.1' );
+define( 'KC_VERSION', '1.1.2' );
 define( 'KC_FILE', __FILE__ );
 define( 'KC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KC_DIR', KC_PATH );
