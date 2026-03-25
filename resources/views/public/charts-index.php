@@ -1,127 +1,194 @@
 <?php
+/**
+ * Kontentainment Charts V1 Home Template
+ * Rebuilt from Old Plugin home.php using NEW DB architecture & premium Bento UI.
+ */
 global $wpdb;
 $prefix = $wpdb->prefix . 'kc_';
 
-// 1. Get Latest Global Chart Snapshot
-$latest_global = $wpdb->get_row("
-    SELECT c.name, c.slug, w.week_date, w.id as week_id
-    FROM {$prefix}charts c
-    JOIN {$prefix}chart_weeks w ON c.id = w.chart_id
-    WHERE w.status = 'published'
-    ORDER BY w.week_date DESC
+// 1. Get Hero/Lead Chart (Latest Published Week)
+$hero_week = $wpdb->get_row("
+    SELECT cw.*, c.name as chart_name, c.slug as chart_slug
+    FROM {$prefix}chart_weeks cw
+    JOIN {$prefix}charts c ON cw.chart_id = c.id
+    WHERE cw.status = 'published'
+    ORDER BY cw.week_date DESC
     LIMIT 1
 ");
 
-// 2. Get Top 3 Tracks Snapshot
-$top_tracks = [];
-if ($latest_global) {
-    $top_tracks = $wpdb->get_results($wpdb->prepare("
-        SELECT e.rank, t.title, a.name as artist_name, t.artwork_url, t.slug as track_slug
+$top_entry = null;
+if ($hero_week) {
+    $top_entry = $wpdb->get_row($wpdb->prepare("
+        SELECT e.*, t.title as track_title, t.slug as track_slug, a.name as artist_name, a.slug as artist_slug, t.artwork_url
         FROM {$prefix}chart_entries e
         JOIN {$prefix}tracks t ON e.track_id = t.id
         LEFT JOIN {$prefix}artists a ON t.primary_artist_id = a.id
         WHERE e.chart_week_id = %d
         ORDER BY e.rank ASC
-        LIMIT 3
-    ", $latest_global->week_id));
+        LIMIT 1
+    ", $hero_week->id));
 }
 
-// 3. Get All Active Charts
-$all_charts = $wpdb->get_results("SELECT * FROM {$prefix}charts WHERE status = 'active' ORDER BY name ASC");
+// 2. Get Featured Charts
+$featured_charts = $wpdb->get_results("SELECT * FROM {$prefix}charts WHERE status = 'active' LIMIT 6");
 
-// 4. Get Top 5 Artists Snapshot
-$featured_artists = $wpdb->get_results("
-    SELECT a.*, COUNT(e.id) as total_weeks
+// 3. Get Trending Rows (Heat & Momentum)
+$trending_tracks = $wpdb->get_results("
+    SELECT t.*, a.name as artist_name, COUNT(e.id) as appearance_count
+    FROM {$prefix}tracks t
+    JOIN {$prefix}chart_entries e ON e.track_id = t.id
+    LEFT JOIN {$prefix}artists a ON t.primary_artist_id = a.id
+    GROUP BY t.id
+    ORDER BY appearance_count DESC
+    LIMIT 5
+");
+
+$trending_artists = $wpdb->get_results("
+    SELECT a.*, COUNT(e.id) as appearance_count
     FROM {$prefix}artists a
     JOIN {$prefix}tracks t ON t.primary_artist_id = a.id
     JOIN {$prefix}chart_entries e ON e.track_id = t.id
     GROUP BY a.id
-    ORDER BY total_weeks DESC
+    ORDER BY appearance_count DESC
     LIMIT 5
 ");
 
 ?>
 <div class="kc-public-wrap">
     
-    <!-- Hero Section -->
-    <header style="text-align: center; margin-bottom: 80px;">
-        <h1 class="kc-hero-title">The Music Authority</h1>
-        <p class="kc-hero-subtitle">Discover the official weekly rankings, verified consumption data, and historical chart performance from across the industry.</p>
-        <div style="display: flex; gap: 15px; justify-content: center;">
-            <a href="<?php echo home_url('/charts/tracks/'); ?>" class="kc-link-card" style="padding: 12px 24px; background: #111; color: #fff; border:none;">Explore Tracks</a>
-            <a href="<?php echo home_url('/charts/artists/'); ?>" class="kc-link-card" style="padding: 12px 24px;">View Artist Directory</a>
-        </div>
-    </header>
-
-    <?php if ($latest_global) : ?>
-    <!-- Featured Chart Hero Spot -->
-    <section class="kc-spotlight">
-        <?php 
-        $top_img = !empty($top_tracks[0]->artwork_url) ? $top_tracks[0]->artwork_url : 'https://picsum.photos/400/400?random=chart'; 
-        ?>
-        <img src="<?php echo esc_url($top_img); ?>" class="kc-spotlight-img" alt="Top Track">
-        <div class="kc-spotlight-content">
-            <span class="kc-public-badge new">Current #1</span>
-            <p style="margin: 15px 0 0 0; color: #666; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
-                <?php echo esc_html($latest_global->name); ?> • Week of <?php echo date('M d', strtotime($latest_global->week_date)); ?>
-            </p>
-            <h2><?php echo esc_html($top_tracks[0]->track_title ?? 'Untitled'); ?></h2>
-            <p style="font-size: 1.5rem; color: #666; margin-bottom: 30px;"><?php echo esc_html($top_tracks[0]->artist_name ?? 'Unknown Artist'); ?></p>
-            <a href="<?php echo home_url('/charts/'.$latest_global->slug.'/'); ?>" style="font-weight: 800; color: #111; text-decoration: underline; text-underline-offset: 6px;">View Full Ranking →</a>
-        </div>
-    </section>
-    <?php endif; ?>
-
-    <!-- Secondary Bento Section -->
-    <div class="kc-bento-grid">
-        
-        <!-- Active Charts List -->
-        <div class="kc-bento-item" style="grid-column: span 8;">
-            <div class="kc-section-header">
-                <h2 class="kc-section-title">Active Rankings</h2>
-                <a href="<?php echo home_url('/charts/about/'); ?>" style="font-size: 0.8rem; font-weight: 700;">Methodology</a>
+    <!-- Hero Section: Premium chart stories with bold editorial pulse -->
+    <header style="margin-bottom: 80px;">
+        <div class="kc-split-grid" style="align-items: center;">
+            <div>
+                <span class="kc-public-badge new" style="margin-bottom: 20px;">
+                    <?php echo $hero_week ? 'Week of ' . date('F j, Y', strtotime($hero_week->week_date)) : 'Kontentainment Charts'; ?>
+                </span>
+                <h1 class="kc-hero-title">Premium chart stories with a bold editorial pulse.</h1>
+                <p class="kc-hero-subtitle" style="margin-left:0;">Track the week’s most influential artists, songs, and albums through a cinematic interface built for chart storytelling.</p>
+                <div style="display: flex; gap: 15px; margin-top: 30px;">
+                    <a href="<?php echo home_url('/charts/'); ?>" class="kc-btn">Open Charts</a>
+                    <a href="<?php echo home_url('/charts/about/'); ?>" class="kc-btn kc-btn-ghost">About Charts</a>
+                </div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                <?php if ($all_charts) : foreach($all_charts as $chart) : ?>
-                    <a href="<?php echo home_url('/charts/'.$chart->slug.'/'); ?>" class="kc-link-card">
-                        <div style="width: 12px; height: 12px; border-radius: 50%; background: #111;"></div>
-                        <div>
-                            <p style="margin:0; font-weight:700;"><?php echo esc_html($chart->name); ?></p>
-                            <p style="margin:0; font-size: 0.8rem; color:#888;"><?php echo esc_html($chart->max_positions); ?> Positions</p>
+
+            <!-- Featured Lead Item -->
+            <div>
+                <?php if ($top_entry) : ?>
+                    <div class="kc-panel" style="padding:0; overflow:hidden; border: 2px solid #111;">
+                        <img src="<?php echo esc_url($top_entry->artwork_url ?: 'https://picsum.photos/600/600?random=1'); ?>" style="width:100%; height: 350px; object-fit:cover; display:block;">
+                        <div style="padding: 30px;">
+                            <span class="kc-public-badge new" style="background:#111; color:#fff; border-radius:4px; margin-bottom: 10px;">Current #1 • <?php echo esc_html($hero_week->chart_name); ?></span>
+                            <h2 style="font-size: 2.5rem; margin:10px 0; font-weight: 900;"><?php echo esc_html($top_entry->track_title); ?></h2>
+                            <p style="font-size: 1.2rem; color: #666; font-weight: 700;">by <?php echo esc_html($top_entry->artist_name); ?></p>
+                            <a href="<?php echo home_url('/charts/track/'.$top_entry->track_slug.'/'); ?>" style="display:inline-block; margin-top: 20px; font-weight: 800; color:#111; text-decoration: underline;">View Performance Details →</a>
                         </div>
-                    </a>
-                <?php endforeach; else: ?>
-                    <p style="color:#888;">No active charts found.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="kc-empty-state" style="padding: 60px;">
+                        <h3>No live chart data yet.</h3>
+                        <p>The chart network is ready. Publish the first live week from the dashboard to activate this homepage.</p>
+                        <a href="<?php echo home_url('/charts-dashboard/'); ?>" class="kc-btn kc-btn-ghost">Open Dashboard</a>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
+    </header>
 
-        <!-- Artists Snapshot -->
-        <div class="kc-bento-item dark" style="grid-column: span 4;">
-            <h2 class="kc-section-title" style="color:#fff; margin-bottom: 25px;">Leading Artists</h2>
-            <?php if ($featured_artists) : foreach($featured_artists as $artist) : ?>
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                    <div style="width: 48px; height: 48px; border-radius: 50%; background: #333 url('<?php echo esc_url($artist->image_url ?: 'https://picsum.photos/100/100?random='.$artist->id); ?>'); background-size: cover;"></div>
-                    <div style="flex-grow: 1;">
-                        <p style="margin:0; font-weight:700; font-size: 0.9rem;"><?php echo esc_html($artist->name); ?></p>
-                        <p style="margin:0; font-size: 0.75rem; color:#aaa;"><?php echo (int)$artist->total_weeks; ?> Wks Charted</p>
-                    </div>
+    <!-- Featured Lists Section -->
+    <section style="margin-bottom: 80px;">
+        <div class="kc-section-header">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Chart Navigation</span>
+                <h2 class="kc-section-title">Featured Lists</h2>
+            </div>
+            <a href="<?php echo home_url('/charts/'); ?>" style="font-weight:700; color:#111;">All Charts →</a>
+        </div>
+        <div class="kc-bento-grid">
+            <?php if ($featured_charts) : foreach($featured_charts as $chart) : ?>
+                <div class="kc-bento-item" style="grid-column: span 4;">
+                    <p style="margin:0; font-size: 0.7rem; font-weight:800; color:#aaa; text-transform:uppercase;"><?php echo esc_html($chart->type); ?></p>
+                    <h3 style="margin:10px 0; font-weight:900;"><a href="<?php echo home_url('/charts/'.$chart->slug.'/'); ?>" style="color:inherit; text-decoration:none;"><?php echo esc_html($chart->name); ?></a></h3>
+                    <p style="font-size: 0.85rem; color:#666; margin-bottom: 20px;"><?php echo esc_html($chart->max_positions); ?> positions highlighting this week's movement.</p>
+                    <a href="<?php echo home_url('/charts/'.$chart->slug.'/'); ?>" style="font-size: 0.75rem; font-weight:800; color:#111; text-decoration:none; border-bottom: 2px solid #111;">Open List →</a>
                 </div>
             <?php endforeach; else: ?>
-                <p style="color:#555;">No records indexed.</p>
+                <p style="grid-column: span 12; color:#888;">No chart categories are active yet.</p>
             <?php endif; ?>
-            <a href="<?php echo home_url('/charts/artists/'); ?>" style="display:block; margin-top: 15px; color:#fff; text-decoration:none; font-size: 0.8rem; font-weight: 700;">Artist Directory →</a>
         </div>
+    </section>
 
-    </div>
+    <!-- Trending Split: Streaming Heat & Momentum Leaders -->
+    <section style="margin-bottom: 80px;">
+        <div class="kc-split-grid">
+            
+            <!-- Top Tracks Panel -->
+            <div class="kc-panel">
+                <div class="kc-panel-header">
+                    <div>
+                        <span style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Top Tracks</span>
+                        <h2 style="margin:0; font-weight:900;">Streaming Heat</h2>
+                    </div>
+                </div>
+                <?php if ($trending_tracks) : foreach($trending_tracks as $i => $track) : ?>
+                    <div class="kc-mini-row">
+                        <span class="kc-mini-row-rank"><?php echo ($i+1); ?></span>
+                        <div style="flex-grow:1;">
+                            <p style="margin:0; font-weight:800; font-size: 0.9rem;"><a href="<?php echo home_url('/charts/track/'.$track->slug.'/'); ?>" style="color:inherit; text-decoration:none;"><?php echo esc_html($track->title); ?></a></p>
+                            <p style="margin:0; font-size: 0.75rem; color:#888;"><?php echo esc_html($track->artist_name); ?></p>
+                        </div>
+                        <span class="kc-public-badge same">—</span>
+                    </div>
+                <?php endforeach; else: ?>
+                    <p style="color:#888; font-size: 0.9rem;">No live track chart data published yet.</p>
+                <?php endif; ?>
+                <a href="<?php echo home_url('/charts/tracks/'); ?>" style="display:block; margin-top:20px; font-size: 0.8rem; font-weight:800; text-align:center; color:#888; text-decoration:none;">View Full Track Directory</a>
+            </div>
 
-    <?php if (!$latest_global && !$all_charts) : ?>
-    <!-- Empty State -->
-    <div class="kc-empty-state">
-        <h3>Chartering the Future</h3>
-        <p>There are no published charts available at this time. Check back soon for the latest industry data.</p>
-        <a href="<?php echo home_url(); ?>" class="kc-link-card" style="display: inline-flex; border-color: #111;">Return to Home</a>
-    </div>
-    <?php endif; ?>
+            <!-- Top Artists Panel -->
+            <div class="kc-panel">
+                <div class="kc-panel-header">
+                    <div>
+                        <span style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Top Artists</span>
+                        <h2 style="margin:0; font-weight:900;">Momentum Leaders</h2>
+                    </div>
+                </div>
+                <?php if ($trending_artists) : foreach($i = 0; $trending_artists as $artist) : ?>
+                    <div class="kc-mini-row">
+                        <span class="kc-mini-row-rank"><?php echo (++$i); ?></span>
+                        <div style="flex-grow:1;">
+                            <p style="margin:0; font-weight:800; font-size: 0.9rem;"><a href="<?php echo home_url('/charts/artist/'.$artist->slug.'/'); ?>" style="color:inherit; text-decoration:none;"><?php echo esc_html($artist->name); ?></a></p>
+                            <p style="margin:0; font-size: 0.75rem; color:#888;"><?php echo esc_html($artist->country); ?></p>
+                        </div>
+                        <span class="kc-public-badge same">—</span>
+                    </div>
+                <?php endforeach; else: ?>
+                    <p style="color:#888; font-size: 0.9rem;">No live artist chart data published yet.</p>
+                <?php endif; ?>
+                <a href="<?php echo home_url('/charts/artists/'); ?>" style="display:block; margin-top:20px; font-size: 0.8rem; font-weight:800; text-align:center; color:#888; text-decoration:none;">View Full Artist Directory</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer Discovery Bar -->
+    <section>
+        <div class="kc-split-grid">
+             <div class="kc-panel dark" style="padding: 40px; border:none;">
+                 <span style="font-size:0.7rem; font-weight:800; color:#888; text-transform:uppercase;">Discovery</span>
+                 <h2 style="color:#fff; font-weight:900; margin:10px 0;">Browse the music library</h2>
+                 <p style="color:#aaa; font-size: 0.9rem; margin-bottom: 25px;">Explore real artists and tracks that have been added to Kontentainment Charts across all historical periods.</p>
+                 <div style="display:flex; gap: 15px;">
+                      <a href="<?php echo home_url('/charts/artists/'); ?>" class="kc-btn" style="background:#fff; color:#111;">All Artists</a>
+                      <a href="<?php echo home_url('/charts/tracks/'); ?>" class="kc-btn kc-btn-ghost" style="color:#fff; border-color:#fff;">All Tracks</a>
+                 </div>
+             </div>
+             <div class="kc-panel" style="padding: 40px; border: 2px solid #111;">
+                 <span style="font-size:0.7rem; font-weight:800; color:#888; text-transform:uppercase;">Methodology</span>
+                 <h2 style="font-weight:900; margin:10px 0;">How the charts are built</h2>
+                 <p style="color:#666; font-size: 0.9rem; margin-bottom: 25px;">Read the platform methodology, understand the publishing flow, and see how source data becomes a live chart week.</p>
+                 <a href="<?php echo home_url('/charts/about/'); ?>" class="kc-btn kc-btn-ghost">Read Methodology</a>
+             </div>
+        </div>
+    </section>
 
 </div>
