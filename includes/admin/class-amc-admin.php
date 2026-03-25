@@ -124,65 +124,6 @@ class AMC_Admin {
 		echo '</div></div>';
 	}
 
-	/**
-	 * Jobs queue view.
-	 */
-	private static function render_jobs() {
-		$filters = AMC_Admin_Data::job_filters_from_request();
-		$jobs    = AMC_Admin_Data::jobs( $filters );
-
-		self::render_panel_start( 'Jobs and queue', 'Queue controls for retrying failures, cancelling queued tasks, rerunning safe completed tasks, and manually advancing queued work.' );
-		echo '<form method="get" class="amc-admin-form">';
-		if ( is_admin() ) {
-			echo '<input type="hidden" name="page" value="' . esc_attr( isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'kontentainment-charts' ) . '">';
-		}
-		self::field_select( 'State', 'job_status', $filters['status'], array( '' => 'All states', 'queued' => 'Queued', 'running' => 'Running', 'completed' => 'Completed', 'failed' => 'Failed', 'cancelled' => 'Cancelled' ) );
-		self::field_select( 'Job type', 'job_type', $filters['job_type'], array( '' => 'All types', 'parse_upload' => 'Parse Upload', 'rerun_matching' => 'Rerun Matching', 'auto_create_processing' => 'Auto-create Processing', 'generate_chart' => 'Generate Chart', 'publish_checks' => 'Publish Checks', 'cleanup_diagnostics' => 'Cleanup Diagnostics' ) );
-		self::field_select( 'Chart', 'job_chart_id', $filters['chart_id'], array( 0 => 'All charts' ) + self::chart_options() );
-		self::field_input( 'Country', 'job_country', $filters['country'] );
-		self::field_input( 'Week / date', 'job_week_date', $filters['week_date'], 'date' );
-		self::submit_row( array( array( 'label' => 'Filter jobs', 'class' => 'button-primary' ) ) );
-		self::close_form();
-
-		self::render_table(
-			array( 'ID', 'Job Type', 'Status / Failure', 'Attempts', 'Sequence', 'Operator', 'Actions' ),
-			array_map(
-				function ( $row ) {
-					$actions = array();
-					$status_html = '<div>' . self::badge_html( $row['state'] ) . '</div>';
-					
-					if ( ! empty( $row['failure_reason'] ) ) {
-						$status_html .= '<div style="margin-top:4px; max-width:240px;"><small class="amc-text-error">' . esc_html( $row['failure_reason'] ) . '</small></div>';
-					}
-					if ( ! empty( $row['next_retry_at'] ) && 'failed' === $row['raw_state'] ) {
-						$status_html .= '<div><small>Retry: ' . esc_html( $row['next_retry_at'] ) . '</small></div>';
-					}
-
-					if ( 'queued' === $row['raw_state'] ) {
-						$actions[] = '<a class="amc-action-btn" href="' . esc_url( self::action_url( 'job', $row['id'], 'run' ) ) . '">Run now</a>';
-						$actions[] = '<a class="amc-action-btn" href="' . esc_url( self::action_url( 'job', $row['id'], 'cancel' ) ) . '">Cancel</a>';
-					} elseif ( 'failed' === $row['raw_state'] ) {
-						$actions[] = '<a class="amc-action-btn" href="' . esc_url( self::action_url( 'job', $row['id'], 'retry' ) ) . '">Retry</a>';
-					} elseif ( 'completed' === $row['raw_state'] ) {
-						$actions[] = '<a class="amc-action-btn" href="' . esc_url( self::action_url( 'job', $row['id'], 'rerun' ) ) . '">Rerun</a>';
-					}
-
-					return array(
-						(string) $row['id'],
-						array( 'value' => '<strong>' . esc_html( $row['job_type'] ) . '</strong><br><small>' . esc_html( $row['related'] ) . '</small>', 'html' => true ),
-						array( 'value' => $status_html, 'html' => true ),
-						(string) $row['attempts'] . '/' . (string) $row['max_attempts'],
-						array( 'value' => 'Started: ' . $row['started_time'] . '<br>Finished: ' . $row['finished_time'] . '<br>Duration: ' . $row['duration'], 'html' => true ),
-						$row['trigger_mode'],
-						array( 'value' => implode( ' / ', $actions ), 'html' => true ),
-					);
-				},
-				$jobs
-			)
-		);
-		self::render_panel_end();
-	}
-
 	public static function render_custom_dashboard() {
 		if ( ! is_user_logged_in() ) {
 			auth_redirect();
@@ -1105,6 +1046,7 @@ class AMC_Admin {
 		self::render_panel_end();
 		echo '</section>';
 
+		$ops = AMC_Admin_Data::operational_summary();
 		self::render_panel_start( 'Live operations snapshot', 'Real-time operational summary across uploads, review queues, generation readiness, and currently live chart weeks.' );
 		echo '<div class="amc-admin-stat-stack">';
 		printf( '<div><strong>%1$s</strong><span>Pending review items</span></div>', esc_html( (string) $ops['pending_review'] ) );
