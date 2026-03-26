@@ -11,7 +11,7 @@ class AMC_DB {
 	/**
 	 * Database version.
 	 */
-	const VERSION = '1.8.0';
+	const VERSION = '1.0.0';
 
 	/**
 	 * Table suffixes.
