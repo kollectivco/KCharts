@@ -111,14 +111,59 @@ document.addEventListener('DOMContentLoaded', function () {
 		});
 	});
 
-	// Select All functionality
-	const selectAll = document.querySelector('[data-amc-select-all]');
-	if (selectAll) {
-		const checkboxes = document.querySelectorAll('[data-amc-row-checkbox]');
-		selectAll.addEventListener('change', function () {
-			checkboxes.forEach(function (cb) {
-				cb.checked = selectAll.checked;
+	// Improved Selection functionality
+	const selectAllCheckbox = document.querySelector('[data-amc-select-all]');
+	const selectAllBtn = document.querySelector('[data-amc-select-all-btn]');
+	const clearAllBtn = document.querySelector('[data-amc-clear-all-btn]');
+	const countDisplay = document.querySelector('[data-amc-selection-count]');
+	const rowCheckboxes = document.querySelectorAll('[data-amc-row-checkbox]');
+
+	function updateSelectionState() {
+		const checkedCount = Array.from(rowCheckboxes).filter(cb => cb.checked).length;
+		const totalCount = rowCheckboxes.length;
+
+		if (selectAllCheckbox) {
+			selectAllCheckbox.checked = checkedCount === totalCount && totalCount > 0;
+			selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+		}
+
+		if (countDisplay) {
+			countDisplay.textContent = checkedCount + ' selected';
+			countDisplay.classList.toggle('has-selection', checkedCount > 0);
+		}
+	}
+
+	if (selectAllCheckbox) {
+		selectAllCheckbox.addEventListener('change', function () {
+			rowCheckboxes.forEach(function (cb) {
+				cb.checked = selectAllCheckbox.checked;
 			});
+			updateSelectionState();
 		});
 	}
+
+	if (selectAllBtn) {
+		selectAllBtn.addEventListener('click', function () {
+			rowCheckboxes.forEach(function (cb) {
+				cb.checked = true;
+			});
+			updateSelectionState();
+		});
+	}
+
+	if (clearAllBtn) {
+		clearAllBtn.addEventListener('click', function () {
+			rowCheckboxes.forEach(function (cb) {
+				cb.checked = false;
+			});
+			updateSelectionState();
+		});
+	}
+
+	rowCheckboxes.forEach(function (cb) {
+		cb.addEventListener('change', updateSelectionState);
+	});
+
+	// Initialize state
+	updateSelectionState();
 });

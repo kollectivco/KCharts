@@ -1628,10 +1628,15 @@ class AMC_Admin {
 				echo '</select>';
 				echo '<button type="submit" class="button button-secondary">Apply to selected</button>';
 				echo '<input type="hidden" name="redirect_to" value="' . esc_url( self::current_url() ) . '">';
+				echo '<div class="amc-bulk-selection-tools">';
+				echo '<button type="button" class="button button-secondary" data-amc-select-all-btn>Select all</button>';
+				echo '<button type="button" class="button button-secondary" data-amc-clear-all-btn>Clear selection</button>';
+				echo '<span class="amc-selection-count" data-amc-selection-count>0 selected</span>';
+				echo '</div>';
 			}
 
 			self::render_table(
-				array( '<input type="checkbox" data-amc-select-all>', 'Source Row', 'Signal / Logic', 'Suggested Target', 'Action' ),
+				array( array( 'value' => '<input type="checkbox" data-amc-select-all>', 'html' => true ), 'Source Row', 'Signal / Logic', 'Suggested Target', 'Action' ),
 				array_map( function ( $row ) use ( $current_status ) {
 					// Checkbox
 					$cb = '<input type="checkbox" name="selected_ids[]" value="' . (int) $row['id'] . '" data-amc-row-checkbox>';
@@ -2072,7 +2077,9 @@ class AMC_Admin {
 	private static function render_table( $headers, $rows ) {
 		echo '<div class="amc-admin-table-wrap"><table class="widefat striped amc-admin-table"><thead><tr>';
 		foreach ( $headers as $header ) {
-			printf( '<th>%s</th>', esc_html( $header ) );
+			$label = is_array( $header ) ? $header['value'] : $header;
+			$html  = is_array( $header ) && ! empty( $header['html'] );
+			printf( '<th>%s</th>', $html ? $label : esc_html( (string) $label ) );
 		}
 		echo '</tr></thead><tbody>';
 		if ( empty( $rows ) ) {

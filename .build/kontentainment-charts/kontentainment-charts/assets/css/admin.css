@@ -119,10 +119,30 @@
 .amc-bulk-bar {
 	display: flex;
 	align-items: center;
+	justify-content: space-between;
 	gap: 12px;
 	padding: 16px;
 	background: var(--amc-theme-table-head-surface);
 	border-bottom: 1px solid var(--amc-theme-table-row-border);
+}
+
+.amc-bulk-selection-tools {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.amc-selection-count {
+	font-size: 11px;
+	font-weight: 700;
+	color: var(--amc-theme-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	transition: all 0.2s ease;
+}
+
+.amc-selection-count.has-selection {
+	color: var(--amc-theme-accent);
 }
 
 .amc-bulk-select {
