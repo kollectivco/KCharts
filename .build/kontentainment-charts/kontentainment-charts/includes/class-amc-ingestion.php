@@ -859,32 +859,40 @@ class AMC_Ingestion {
 			'approve'  => 'approved',
 			'reject'   => 'rejected',
 			'override' => 'override',
+			'create'   => 'approved',
 		);
 		$new_status  = isset( $status_map[ $decision ] ) ? $status_map[ $decision ] : 'pending';
 		$entity_type = ! empty( $override['entity_type'] ) ? sanitize_key( $override['entity_type'] ) : $queue['entity_type'];
 		$entity_id   = ! empty( $override['entity_id'] ) ? absint( $override['entity_id'] ) : (int) $queue['candidate_entity_id'];
 
+		if ( 'create' === $decision ) {
+			$creation_result = self::auto_create_entity_from_row( $source_row, $entity_type );
+			if ( ! empty( $creation_result['success'] ) ) {
+				$entity_id = (int) $creation_result['entity_id'];
+			}
+		}
+
 		AMC_DB::save_row(
 			'matching_queue',
 				array(
 					'status'               => $new_status,
-					'override_entity_type' => 'override' === $decision ? $entity_type : $queue['override_entity_type'],
-					'override_entity_id'   => 'override' === $decision ? $entity_id : (int) $queue['override_entity_id'],
+					'override_entity_type' => in_array( $decision, array( 'override', 'create' ), true ) ? $entity_type : $queue['override_entity_type'],
+					'override_entity_id'   => in_array( $decision, array( 'override', 'create' ), true ) ? $entity_id : (int) $queue['override_entity_id'],
 					'row_type'             => 'override' === $decision ? 'review needed' : $queue['row_type'],
-					'action_hint'          => 'override' === $decision ? 'Operator selected a manual target record.' : $queue['action_hint'],
+					'action_hint'          => in_array( $decision, array( 'override', 'create' ), true ) ? 'Operator manually selected or created a target.' : $queue['action_hint'],
 					'notes'                => ! empty( $override['notes'] ) ? sanitize_text_field( $override['notes'] ) : $queue['notes'],
 				),
 				$queue_id
 		);
 
-		if ( in_array( $decision, array( 'approve', 'override' ), true ) ) {
+		if ( in_array( $decision, array( 'approve', 'override', 'create' ), true ) ) {
 			AMC_DB::save_row(
 				'source_rows',
 				array(
 					'matched_entity_type' => $entity_type,
 					'matched_entity_id'   => $entity_id,
 					'matching_status'     => 'matched',
-					'match_resolution'    => 'override' === $decision ? 'manual_override' : 'matched_existing',
+					'match_resolution'    => in_array( $decision, array( 'override', 'create' ), true ) ? ( 'create' === $decision ? 'auto_created' : 'manual_override' ) : 'matched_existing',
 				),
 				$source_row_id
 			);
@@ -3437,7 +3445,7 @@ class AMC_Ingestion {
 	 * @param string $type Target entity type.
 	 * @return array
 	 */
-	private static function auto_create_entity_from_row( $row, $type ) {
+	public static function auto_create_entity_from_row( $row, $type ) {
 		if ( 'artist' === $type ) {
 			if ( empty( $row['normalized_artist'] ) ) {
 				return array( 'success' => false, 'reason' => 'Artist name is empty after normalization.' );

@@ -22,7 +22,7 @@ if ( ! defined( 'AMC_LEGACY_ROUTE_BASE' ) ) {
 	define( 'AMC_LEGACY_ROUTE_BASE', 'music-charts' );
 }
 
-define( 'AMC_PLUGIN_VERSION', '4.3.10' );
+define( 'AMC_PLUGIN_VERSION', '4.3.11' );
 define( 'AMC_PLUGIN_SLUG', 'kontentainment-charts' );
 define( 'AMC_PLUGIN_FILE', __FILE__ );
 define( 'AMC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

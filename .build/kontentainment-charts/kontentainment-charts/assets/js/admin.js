@@ -68,6 +68,30 @@ document.addEventListener('DOMContentLoaded', function () {
 		'.amc-admin-alerts a[href*="amc_row_action"]',
 	].join(', ');
 
+	const bell = document.getElementById('amcNotificationsBell');
+	const dropdown = document.getElementById('amcNotificationsDropdown');
+
+	if (bell && dropdown) {
+		bell.addEventListener('click', function (event) {
+			event.stopPropagation();
+			const isHidden = dropdown.hasAttribute('hidden');
+			if (isHidden) {
+				dropdown.removeAttribute('hidden');
+				bell.classList.add('is-active');
+			} else {
+				dropdown.setAttribute('hidden', '');
+				bell.classList.remove('is-active');
+			}
+		});
+
+		document.addEventListener('click', function (event) {
+			if (!dropdown.contains(event.target) && !bell.contains(event.target)) {
+				dropdown.setAttribute('hidden', '');
+				bell.classList.remove('is-active');
+			}
+		});
+	}
+
 	document.querySelectorAll(ACTION_SELECTORS).forEach(function (link) {
 		link.addEventListener('click', function (event) {
 			// For confirm-guarded links, wait until confirm passes.

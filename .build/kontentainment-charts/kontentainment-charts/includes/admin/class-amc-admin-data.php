@@ -349,6 +349,16 @@ class AMC_Admin_Data {
 	}
 
 	/**
+	 * Get only unread notifications count.
+	 *
+	 * @return int
+	 */
+	public static function unread_notifications_count() {
+		$notifications = self::notification_center( array( 'status' => 'unread' ) );
+		return count( $notifications );
+	}
+
+	/**
 	 * Full notification center data with filters.
 	 *
 	 * @param array $filters Filters.
