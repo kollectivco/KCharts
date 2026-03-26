@@ -1,0 +1,11 @@
+.DS_Store
+*.zip
+dist/
+.codex/
+node_modules/
+vendor/
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
