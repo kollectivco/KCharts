@@ -16,18 +16,9 @@ class AMC_Admin_Data {
 	public static function pages() {
 		return array(
 			'dashboard'      => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Dashboard' ),
-			'charts'         => array( 'menu_slug' => 'kontentainment-charts-charts', 'title' => 'Charts Management' ),
-			'weekly-entries' => array( 'menu_slug' => 'kontentainment-charts-weeks', 'title' => 'Weekly Chart Entries' ),
-			'tracks'         => array( 'menu_slug' => 'kontentainment-charts-tracks', 'title' => 'Tracks Management' ),
-			'artists'        => array( 'menu_slug' => 'kontentainment-charts-artists', 'title' => 'Artists Management' ),
-			'albums'         => array( 'menu_slug' => 'kontentainment-charts-albums', 'title' => 'Albums Management' ),
-			'uploads'        => array( 'menu_slug' => 'kontentainment-charts-uploads', 'title' => 'Source Uploads' ),
-			'cleaning'       => array( 'menu_slug' => 'kontentainment-charts-cleaning', 'title' => 'Matching and Cleaning' ),
-			'scoring'        => array( 'menu_slug' => 'kontentainment-charts-scoring', 'title' => 'Scoring Rules' ),
-			'publishing'     => array( 'menu_slug' => 'kontentainment-charts-publishing', 'title' => 'Publishing' ),
-			'archives'       => array( 'menu_slug' => 'kontentainment-charts-archives', 'title' => 'Archive Management' ),
-			'users'          => array( 'menu_slug' => 'kontentainment-charts-users', 'title' => 'Users and Roles' ),
-			'settings'       => array( 'menu_slug' => 'kontentainment-charts-settings', 'title' => 'Settings' ),
+			'import'         => array( 'menu_slug' => 'kontentainment-charts-import', 'title' => 'Import Sheet' ),
+			'review'         => array( 'menu_slug' => 'kontentainment-charts-review', 'title' => 'Review Unresolved' ),
+			'results'        => array( 'menu_slug' => 'kontentainment-charts-results', 'title' => 'Charts Results' ),
 		);
 	}
 
@@ -39,11 +30,7 @@ class AMC_Admin_Data {
 	public static function wp_admin_pages() {
 		return array(
 			'overview'       => array( 'menu_slug' => 'kontentainment-charts', 'title' => 'Overview' ),
-			'notifications'  => array( 'menu_slug' => 'kontentainment-charts-notifications', 'title' => 'Notifications' ),
 			'settings'       => array( 'menu_slug' => 'kontentainment-charts-settings', 'title' => 'Settings' ),
-			'tools'          => array( 'menu_slug' => 'kontentainment-charts-tools', 'title' => 'Tools' ),
-			'logs'           => array( 'menu_slug' => 'kontentainment-charts-logs', 'title' => 'Logs' ),
-			'permissions'    => array( 'menu_slug' => 'kontentainment-charts-permissions', 'title' => 'Permissions' ),
 			'open-dashboard' => array( 'menu_slug' => 'kontentainment-charts-open-dashboard', 'title' => 'Open Dashboard' ),
 		);
 	}
@@ -56,20 +43,9 @@ class AMC_Admin_Data {
 	public static function dashboard_sections() {
 		return array(
 			'dashboard'      => array( 'title' => 'Dashboard', 'path' => '' ),
-			'charts'         => array( 'title' => 'Charts', 'path' => 'charts' ),
-			'weekly-entries' => array( 'title' => 'Weekly Entries', 'path' => 'weekly-entries' ),
-			'tracks'         => array( 'title' => 'Tracks', 'path' => 'tracks' ),
-			'artists'        => array( 'title' => 'Artists', 'path' => 'artists' ),
-			'albums'         => array( 'title' => 'Albums', 'path' => 'albums' ),
-			'uploads'        => array( 'title' => 'Source Uploads', 'path' => 'uploads' ),
-			'cleaning'       => array( 'title' => 'Matching and Cleaning', 'path' => 'cleaning' ),
-			'scoring'        => array( 'title' => 'Scoring Rules', 'path' => 'scoring' ),
-			'publishing'     => array( 'title' => 'Publishing', 'path' => 'publishing' ),
-			'jobs'           => array( 'title' => 'Jobs and Queue', 'path' => 'jobs' ),
-			'archives'       => array( 'title' => 'Archive Management', 'path' => 'archives' ),
-			'notifications'  => array( 'title' => 'Notifications', 'path' => 'notifications' ),
-			'users'          => array( 'title' => 'Users and Roles', 'path' => 'users' ),
-			'settings'       => array( 'title' => 'Settings', 'path' => 'settings' ),
+			'import'         => array( 'title' => 'Import Sheet', 'path' => 'import' ),
+			'review'         => array( 'title' => 'Review Unresolved', 'path' => 'review' ),
+			'results'        => array( 'title' => 'Charts Results', 'path' => 'results' ),
 		);
 	}
 
