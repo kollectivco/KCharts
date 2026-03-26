@@ -1565,49 +1565,80 @@ class AMC_Admin {
 	}
 
 	private static function render_cleaning() {
-		$candidates  = AMC_Admin_Data::matching_candidates();
-		$override_id = isset( $_GET['queue_id'] ) ? absint( wp_unslash( $_GET['queue_id'] ) ) : 0;
-		$override    = $override_id ? AMC_DB::get_row( 'matching_queue', $override_id ) : null;
+		$all_candidates = AMC_Admin_Data::matching_candidates();
+		$current_status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'review_needed';
+		$override_id    = isset( $_GET['queue_id'] ) ? absint( wp_unslash( $_GET['queue_id'] ) ) : 0;
+		$override       = $override_id ? AMC_DB::get_row( 'matching_queue', $override_id ) : null;
 
 		self::render_workflow_strip( 'cleaning' );
 
-		// Summary counts.
-		$counts = array( 'matched' => 0, 'created' => 0, 'review' => 0, 'rejected' => 0 );
-		foreach ( $candidates as $c ) {
-			if ( in_array( $c['raw_status'], array( 'approved', 'matched', 'matched_existing', 'auto_matched', 'overridden' ), true ) || 'matched_existing' === $c['resolution'] ) {
-				$counts['matched']++;
-			} elseif ( in_array( $c['raw_status'], array( 'auto_created' ), true ) || 'auto_created' === $c['resolution'] ) {
-				$counts['created']++;
-			} elseif ( 'rejected' === $c['raw_status'] ) {
-				$counts['rejected']++;
+		// Accurate summary counts.
+		$counts = array(
+			'review_needed' => 0,
+			'approved'      => 0,
+			'auto_created'  => 0,
+			'rejected'      => 0,
+		);
+
+		foreach ( $all_candidates as $c ) {
+			$s = $c['raw_status'];
+			if ( 'matched_existing' === $c['resolution'] || 'overridden' === $s ) {
+				$s = 'approved';
+			}
+			if ( isset( $counts[ $s ] ) ) {
+				$counts[ $s ]++;
 			} else {
-				$counts['review']++;
+				$counts['review_needed']++;
 			}
 		}
 
-		$review_rows = array_filter( $candidates, function ( $row ) {
-			$resolved = array( 'approved', 'matched', 'matched_existing', 'auto_matched', 'auto_created', 'rejected', 'overridden' );
-			return ! in_array( $row['raw_status'], $resolved, true ) && empty( $row['resolution'] );
-		});
+		self::render_tabs( array(
+			array( 'id' => 'review_needed', 'label' => 'Needs Review', 'count' => $counts['review_needed'] ),
+			array( 'id' => 'approved', 'label' => 'Auto-matched', 'count' => $counts['approved'] ),
+			array( 'id' => 'auto_created', 'label' => 'Auto-created', 'count' => $counts['auto_created'] ),
+			array( 'id' => 'rejected', 'label' => 'Rejected', 'count' => $counts['rejected'] ),
+		) );
 
-		echo '<div class="amc-admin-stat-stack">';
-		printf( '<div><strong>%d</strong><span>Needs Review</span></div>', (int) $counts['review'] );
-		printf( '<div><strong>%d</strong><span>Auto-matched</span></div>', (int) $counts['matched'] );
-		printf( '<div><strong>%d</strong><span>Auto-created</span></div>', (int) $counts['created'] );
-		printf( '<div><strong>%d</strong><span>Rejected</span></div>', (int) $counts['rejected'] );
-		echo '</div>';
+		$rows = array_filter( $all_candidates, function ( $row ) use ( $current_status ) {
+			$s = $row['raw_status'];
+			if ( 'matched_existing' === $row['resolution'] || 'overridden' === $s ) {
+				$s = 'approved';
+			}
+			return $s === $current_status;
+		} );
 
-		self::render_panel_start( 'Review Queue', 'Operators should focus on these items to ensure metadata accuracy in the library.' );
+		self::render_panel_start( ucwords( str_replace( '_', ' ', $current_status ) ) . ' Queue', 'Process rows in batch or individually to finalize ingestion.' );
 
-		if ( empty( $review_rows ) ) {
-			self::render_empty_state( 'Queue Clear', 'All incoming data has been linked or resolved accurately.', 'Advance to Generation', AMC_Admin_Data::custom_dashboard_url( 'weekly-entries' ) );
+		if ( empty( $rows ) ) {
+			self::render_empty_state( 'No rows found', 'The current queue is empty for this status.', 'View All Items', add_query_arg( 'status', 'review_needed', self::current_url() ) );
 		} else {
+			// Bulk action bar.
+			if ( in_array( $current_status, array( 'review_needed', 'rejected' ), true ) ) {
+				echo '<div class="amc-bulk-bar">';
+				self::open_form( 'bulk_action', array( 'entity' => 'matching' ) );
+				echo '<select name="task" class="amc-bulk-select">';
+				echo '<option value="">Bulk Actions</option>';
+				if ( 'review_needed' === $current_status ) {
+					echo '<option value="approve">Approve selected</option>';
+					echo '<option value="create">Create selected</option>';
+				} else {
+					echo '<option value="approve">Restore selected</option>';
+				}
+				echo '<option value="reject">Reject selected</option>';
+				echo '</select>';
+				echo '<button type="submit" class="button button-secondary">Apply to selected</button>';
+				echo '<input type="hidden" name="redirect_to" value="' . esc_url( self::current_url() ) . '">';
+			}
+
 			self::render_table(
-				array( 'Source Entity', 'Signal / Logic', 'Suggested Target', 'Operator Action' ),
-				array_map( function ( $row ) {
+				array( '<input type="checkbox" data-amc-select-all>', 'Source Row', 'Signal / Logic', 'Suggested Target', 'Action' ),
+				array_map( function ( $row ) use ( $current_status ) {
+					// Checkbox
+					$cb = '<input type="checkbox" name="selected_ids[]" value="' . (int) $row['id'] . '" data-amc-row-checkbox>';
+
 					// Source
 					$source = '<div class="amc-row-source"><strong>' . esc_html( $row['candidate'] ) . '</strong>';
-					$source .= '<span>' . esc_html( $row['type'] ) . ' / ' . esc_html( $row['sources'] ) . '</span></div>';
+					$source .= '<span>' . esc_html( $row['type'] ) . ' &middot; ' . esc_html( $row['sources'] ) . '</span></div>';
 
 					// Signal
 					$signal = '<div class="amc-row-signal"><strong>' . esc_html( $row['recommended_action'] ) . '</strong>';
@@ -1617,47 +1648,54 @@ class AMC_Admin {
 					$target = '<div class="amc-row-target">';
 					if ( ! empty( $row['candidate_link'] ) ) {
 						$target .= '<a href="' . esc_url( $row['candidate_link'] ) . '" target="_blank">' . esc_html( $row['candidate'] ) . '</a>';
-						$target .= '<span class="amc-confidence-badge is-high">Matched</span>';
+						$target .= '<span class="amc-confidence-badge is-high">' . esc_html( $row['confidence'] ) . '</span>';
 					} else {
-						$target .= '<em>No match found in library</em>';
-						$target .= '<span class="amc-confidence-badge is-low">Review Needed</span>';
+						$target .= '<em>No library match found</em>';
+						$target .= '<span class="amc-confidence-badge is-low">New Track</span>';
 					}
 					$target .= '</div>';
 
-					// Actions
+					// Individual Actions
 					$actions = '<div class="amc-row-actions-group">';
-					if ( (int) $row['queue']['candidate_entity_id'] > 0 ) {
-						$actions .= self::render_mini_form( 'matching', $row['id'], 'approve', 'Link match', 'button-primary' );
-					} else {
-						$actions .= self::render_mini_form( 'matching', $row['id'], 'create', 'Create new', 'button-primary' );
+					if ( 'review_needed' === $current_status ) {
+						if ( (int) $row['queue']['candidate_entity_id'] > 0 ) {
+							$actions .= self::render_mini_form( 'matching', $row['id'], 'approve', 'Link match', 'button-primary' );
+						} else {
+							$actions .= self::render_mini_form( 'matching', $row['id'], 'create', 'Create track', 'button-primary' );
+						}
+						$actions .= self::render_mini_form( 'matching', $row['id'], 'reject', 'Reject', 'button-secondary' );
+					} elseif ( 'rejected' === $current_status ) {
+						$actions .= self::render_mini_form( 'matching', $row['id'], 'approve', 'Restore', 'button-secondary' );
 					}
-					$actions .= self::render_mini_form( 'matching', $row['id'], 'reject', 'Reject row', 'button-secondary' );
-					$actions .= '<a class="button button-secondary" href="' . esc_url( add_query_arg( 'queue_id', $row['id'], self::current_url() ) ) . '">Search library</a>';
+					$actions .= '<a class="button button-secondary" href="' . esc_url( add_query_arg( 'queue_id', $row['id'], self::current_url() ) ) . '">Override</a>';
 					$actions .= '</div>';
 
 					return array(
+						array( 'value' => $cb, 'html' => true, 'class' => 'amc-row-checkbox-col' ),
 						array( 'value' => $source, 'html' => true ),
 						array( 'value' => $signal, 'html' => true ),
 						array( 'value' => $target, 'html' => true ),
 						array( 'value' => $actions, 'html' => true )
 					);
-				}, array_values( $review_rows ) )
+				}, array_values( $rows ) )
 			);
+
+			if ( in_array( $current_status, array( 'review_needed', 'rejected' ), true ) ) {
+				self::close_form();
+				echo '</div>';
+			}
 		}
 		self::render_panel_end();
 
-		self::render_panel_start( 'Manual Override / Search', 'Select a specific record from the library to link this source row manually.' );
+		self::render_panel_start( 'Manual Override / Search', 'Link a specific library record manually.' );
 		self::open_form( 'row_action', array( 'entity' => 'matching', 'id' => $override ? (int) $override['id'] : 0, 'task' => 'override' ) );
 		echo '<div class="amc-admin-form">';
-		if ( $override ) {
-			echo '<p class="amc-admin-inline-meta">Resolving queue item #' . (int) $override['id'] . '</p>';
-		}
-		self::field_input( 'Queue item ID', 'id_display', $override ? (string) $override['id'] : '', 'text' );
+		self::field_input( 'Queue item ID', 'id_display', $override ? (string) $override['id'] : '', 'text', array( 'readonly' => 'readonly' ) );
 		self::field_select( 'Entity type', 'override_entity_type', $override ? $override['entity_type'] : 'track', array( 'track' => 'Track', 'artist' => 'Artist', 'album' => 'Album' ) );
 		self::field_select( 'Target Library Entity', 'override_entity_id', $override ? (int) $override['candidate_entity_id'] : 0, self::merged_entity_options() );
 		self::field_textarea( 'Notes / Reason', 'notes', $override ? $override['notes'] : '' );
 		echo '</div>';
-		self::submit_row( array( array( 'label' => 'Execute Link / Override', 'class' => 'button-primary' ) ) );
+		self::submit_row( array( array( 'label' => 'Execute Manual Link', 'class' => 'button-primary' ) ) );
 		self::close_form();
 		self::render_panel_end();
 		echo '</section>';
@@ -2849,6 +2887,11 @@ class AMC_Admin {
 			self::redirect_notice( $redirect, ! empty( $result['success'] ) ? 'success' : 'warning', $result['message'] );
 		}
 
+		if ( 'matching' === $entity ) {
+			$result = AMC_Ingestion::bulk_matching_action( $task, $selected );
+			self::redirect_notice( $redirect, ! empty( $result['success'] ) ? 'success' : 'warning', $result['message'] );
+		}
+
 		self::redirect_notice( $redirect, 'warning', 'Unsupported bulk action.' );
 	}
 
@@ -3106,6 +3149,20 @@ class AMC_Admin {
 			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Render tabs navigation.
+	 */
+	protected static function render_tabs( $tabs ) {
+		$current = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : ( isset( $tabs[0]['id'] ) ? $tabs[0]['id'] : '' );
+		echo '<div class="amc-admin-tabs">';
+		foreach ( $tabs as $tab ) {
+			$active = $current === $tab['id'] ? ' is-active' : '';
+			$url    = add_query_arg( array( 'status' => $tab['id'] ), self::current_url() );
+			printf( '<a href="%s" class="amc-admin-tab%s">%s <span class="amc-count-pill">%d</span></a>', esc_url( $url ), esc_attr( $active ), esc_html( $tab['label'] ), (int) ( isset( $tab['count'] ) ? $tab['count'] : 0 ) );
+		}
+		echo '</div>';
 	}
 
 	/**

@@ -1000,17 +1000,28 @@ class AMC_Admin_Data {
 					$confidence = 'Needs review';
 				}
 
-				$recommended = 'Approve suggested match';
+				$recommended = 'Review Match';
 				if ( 'auto_created' === $resolution ) {
-					$recommended = 'Continue to generation';
+					$recommended = 'Ready';
 				} elseif ( 'matched_existing' === $resolution ) {
-					$recommended = 'Continue to generation';
-				} elseif ( 'review_needed' === $row['status'] && (int) $row['candidate_entity_id'] > 0 ) {
-					$recommended = 'Review suggested match';
-				} elseif ( 'review_needed' === $row['status'] ) {
-					$recommended = 'Create or override carefully';
+					$recommended = 'Ready';
 				} elseif ( 'rejected' === $row['status'] ) {
-					$recommended = 'No further action';
+					$recommended = 'Ignored';
+				} elseif ( (int) $row['candidate_entity_id'] > 0 ) {
+					$recommended = 'Approve Match';
+				} else {
+					$recommended = 'Create New';
+				}
+
+				$basis_label = ! empty( $row['match_basis'] ) ? $row['match_basis'] : 'Review needed';
+				if ( strpos( $basis_label, 'Exact' ) !== false ) {
+					$basis_label = 'Exact match found';
+				} elseif ( strpos( $basis_label, 'Artist exact' ) !== false ) {
+					$basis_label = 'Artist found, track missing';
+				} elseif ( strpos( $basis_label, 'similarity' ) !== false ) {
+					$basis_label = 'Partial similarity match';
+				} elseif ( strpos( $basis_label, 'auto_create' ) !== false || strpos( $basis_label, 'Created' ) !== false ) {
+					$basis_label = 'Clean metadata, new release';
 				}
 
 				return array(
@@ -1019,7 +1030,7 @@ class AMC_Admin_Data {
 					'type'       => ucfirst( $row['entity_type'] ),
 					'row_type'   => ucwords( $row_type ),
 					'confidence' => $confidence,
-					'basis'      => ! empty( $row['match_basis'] ) ? $row['match_basis'] : 'No reliable match signal was recorded',
+					'basis'      => $basis_label,
 					'sources'    => $upload ? trim( AMC_Ingestion::platform_label( ! empty( $upload['source_platform'] ) ? $upload['source_platform'] : $upload['source_name'] ) . ' / ' . $upload['country'] . ' / ' . $upload['chart_week'] . ( $chart ? ' / ' . $chart['name'] : '' ), ' /' ) : 'Unknown source',
 					'status'     => ucwords( str_replace( '_', ' ', $row['status'] ) ),
 					'raw_status' => $row['status'],

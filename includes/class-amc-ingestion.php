@@ -709,7 +709,8 @@ class AMC_Ingestion {
 				$confidence = (float) $candidate_result['confidence'];
 				$level      = $candidate_result['level'];
 
-				if ( in_array( $level, array( 'exact', 'high confidence' ), true ) ) {
+				// Rule: Exact or High Confidence (>= 90) => Auto-approve.
+				if ( in_array( $level, array( 'exact', 'high confidence' ), true ) || $confidence >= 90 ) {
 					$status = 'approved';
 					AMC_DB::save_row(
 						'source_rows',
@@ -742,6 +743,16 @@ class AMC_Ingestion {
 					self::log( $upload_id, (int) $row['id'], 'matching_review', 'warning', 'Ambiguous match sent to review queue.', array( 'confidence' => $confidence, 'label' => $label ) );
 				}
 			} else {
+				// Rule: If Artist found exactly, but Track not found, and row is Clean => Auto-create Track.
+				$artist_id = 0;
+				if ( 'track' === $type && ! empty( $row['normalized_artist'] ) ) {
+					$artist_search = self::find_artist_candidate( array( 'normalized_artist' => $row['normalized_artist'] ) );
+					if ( $artist_search && 'exact' === $artist_search['level'] ) {
+						$artist_id = (int) $artist_search['candidate']['id'];
+					}
+				}
+
+				// If no candidate and row is "valid" and we have enough data => Try Auto-create.
 				$creation_result = self::auto_create_entity_from_row( $row, $type );
 
 				if ( ! empty( $creation_result['success'] ) ) {
@@ -2404,6 +2415,47 @@ class AMC_Ingestion {
 		if ( ! empty( $backlog['queued'] ) && (int) $backlog['queued'] >= 10 ) {
 			self::maybe_send_external_alert( 'queue_backlog_warning', 'Queued job backlog exceeded the warning threshold.', array( 'queued_jobs' => (int) $backlog['queued'] ) );
 		}
+	}
+
+	/**
+	 * Handle bulk matching actions.
+	 *
+	 * @param string $task Bulk task.
+	 * @param array  $queue_ids Selected queue IDs.
+	 * @return array
+	 */
+	public static function bulk_matching_action( $task, $queue_ids ) {
+		if ( empty( $queue_ids ) || ! is_array( $queue_ids ) ) {
+			return array( 'success' => false, 'message' => 'No rows selected for bulk action.' );
+		}
+
+		$success_count = 0;
+		$error_count   = 0;
+
+		foreach ( $queue_ids as $id ) {
+			$id = absint( $id );
+			if ( ! $id ) continue;
+
+			$status = false;
+			if ( 'approve' === $task ) {
+				$status = self::apply_matching_decision( $id, 'approve' );
+			} elseif ( 'create' === $task ) {
+				$status = self::apply_matching_decision( $id, 'create' );
+			} elseif ( 'reject' === $task ) {
+				$status = self::apply_matching_decision( $id, 'reject' );
+			}
+
+			if ( $status ) {
+				$success_count++;
+			} else {
+				$error_count++;
+			}
+		}
+
+		return array(
+			'success' => $success_count > 0,
+			'message' => sprintf( 'Bulk action completed: %d succeeded, %d failed.', $success_count, $error_count ),
+		);
 	}
 
 	/**

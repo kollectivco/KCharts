@@ -110,4 +110,15 @@ document.addEventListener('DOMContentLoaded', function () {
 			}, 8000);
 		});
 	});
+
+	// Select All functionality
+	const selectAll = document.querySelector('[data-amc-select-all]');
+	if (selectAll) {
+		const checkboxes = document.querySelectorAll('[data-amc-row-checkbox]');
+		selectAll.addEventListener('change', function () {
+			checkboxes.forEach(function (cb) {
+				cb.checked = selectAll.checked;
+			});
+		});
+	}
 });
