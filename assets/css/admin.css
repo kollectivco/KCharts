@@ -397,3 +397,74 @@
 	.amc-admin-form { grid-template-columns: 1fr; }
 	.amc-admin-topbar { flex-direction: column; align-items: flex-start; }
 }
+
+/* Matching and Cleaning UI Simplification */
+.amc-row-source, .amc-row-signal, .amc-row-target {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.amc-row-source strong {
+	font-size: 15px;
+	color: var(--amc-theme-text-heading);
+}
+
+.amc-row-source span {
+	font-size: 11px;
+	color: var(--amc-theme-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.amc-row-signal strong {
+	font-size: 13px;
+	color: var(--amc-theme-text-secondary);
+}
+
+.amc-row-signal p {
+	font-size: 12px;
+	color: var(--amc-theme-text-muted);
+	margin: 0;
+	max-width: 300px;
+	line-height: 1.4;
+}
+
+.amc-row-target a {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--amc-theme-accent);
+	text-decoration: underline;
+}
+
+.amc-confidence-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 10px;
+	font-weight: 800;
+	text-transform: uppercase;
+	margin-top: 4px;
+}
+
+.amc-confidence-badge.is-high { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.amc-confidence-badge.is-medium { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.amc-confidence-badge.is-low { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+.amc-row-actions-group {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.amc-row-actions-group form {
+	margin: 0;
+	display: inline-block;
+}
+
+.amc-row-actions-group .button {
+	font-size: 12px;
+	padding: 4px 12px;
+	height: auto;
+	line-height: 1.5;
+}

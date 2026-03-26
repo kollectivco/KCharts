@@ -3,7 +3,7 @@
  * Plugin Name: Kontentainment Charts
  * Plugin URI: https://github.com/kollectivco/KCharts
  * Description: Public-facing charts platform and control center for Kontentainment Charts.
- * Version: 4.3.10
+ * Version: 4.3.11
  * Author: Kollectiv
  * License: GPL2+
  * Text Domain: kontentainment-charts
