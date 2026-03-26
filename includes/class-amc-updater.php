@@ -283,10 +283,25 @@ class AMC_Updater {
 		$response = wp_remote_get( 'https://api.github.com/repos/' . self::REPO . '/releases/latest', array( 'headers' => $headers, 'timeout' => 15 ) );
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return array();
-		}
+			// Fallback to tags if no official release found.
+			$response = wp_remote_get( 'https://api.github.com/repos/' . self::REPO . '/tags', array( 'headers' => $headers, 'timeout' => 15 ) );
 
-		$release = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+				return array();
+			}
+
+			$tags = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( empty( $tags ) || ! is_array( $tags ) ) {
+				return array();
+			}
+
+			$release = array(
+				'tag_name' => $tags[0]['name'],
+				'body'     => 'Release found via tag ' . $tags[0]['name'],
+			);
+		} else {
+			$release = json_decode( wp_remote_retrieve_body( $response ), true );
+		}
 
 		if ( empty( $release['tag_name'] ) ) {
 			return array();
